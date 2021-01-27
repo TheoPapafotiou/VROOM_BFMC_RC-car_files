@@ -17,7 +17,6 @@ from threading import Thread
 import socket
 import os
 import sys
-import json
 
 
 class listener(Thread):
@@ -63,6 +62,8 @@ class listener(Thread):
             # Wait for data
             try:
                 data, addr = self.sock.recvfrom(4096) # buffer size is 1024 bytes
+                # Format received data
+                received_data = int.from_bytes(data,'big')
 
                 # Extract ID from message, andupdate corresponding semaphore state
                 # Message format
@@ -71,16 +72,13 @@ class listener(Thread):
                 # Byte 2 - semaphore state - 0 - RED
                 #                          - 1 - YELLOW
                 #                          - 2 - GREEN
-                dat = data.decode('utf-8')
-                dat = json.loads(dat)
-                ID = int(dat['id'])
-                state = int(dat['state'])
+                ID = int(received_data / 256)
                 if (ID == 1):
-                    self.s1_state=state
+                    self.s1_state=(received_data % 256)
                 elif (ID == 2):
-                    self.s2_state=state
+                    self.s2_state=(received_data % 256)
                 elif (ID == 3):
-                    self.s3_state=state
+                    self.s3_state=(received_data % 256)
 
             except Exception as e:
                 print("Receiving data failed with error: " + str(e))

@@ -49,11 +49,10 @@ class CameraStreamer(WorkerProcess):
         inPs : list(Pipe) 
             List of input pipes, only the first pipe is used to transfer the captured frames. 
         outPs : list(Pipe) 
-            List of output pipes (not used at the moment)
+            List of output pipes only the first pipe is used to transfer the captured frames. 
         """
         super(CameraStreamer,self).__init__( inPs, outPs)
-
-        self.serverIp   =  '192.168.1.102' # PC ip
+        self.serverIp   =  '192.168.1.4' # PC ip
         self.port       =  2244            # com port
         
     # ===================================== RUN ==========================================
@@ -69,7 +68,7 @@ class CameraStreamer(WorkerProcess):
         """
         if self._blocker.is_set():
             return
-        streamTh = Thread(name='StreamSending',target = self._send_thread, args= (self.inPs[0], ))
+        streamTh = Thread(name='StreamSending',target = self._send_thread, args= (self.inPs, ))
         streamTh.daemon = True
         self.threads.append(streamTh)
 
@@ -95,7 +94,7 @@ class CameraStreamer(WorkerProcess):
 
         
     # ===================================== SEND THREAD ==================================
-    def _send_thread(self, inP):
+    def _send_thread(self, inPs):
         """Sending the frames received thought the input pipe to remote client by using a socket. 
         
         Parameters
@@ -104,24 +103,22 @@ class CameraStreamer(WorkerProcess):
             Input pipe to read the frames from other process. 
         """
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]
+        frameCounter = -1
         print('Start streaming')
 
         while True:
+            frameCounter = 0
             try:
-                stamps, image = inP.recv()
-                 
-                result, image = cv2.imencode('.jpg', image, encode_param)
-                data   =  image.tobytes()
+                stamps, image = inPs[frameCounter%2].recv()
+                result, imageB = cv2.imencode('.jpg', image, encode_param)
+                data   =  imageB.tobytes()
                 size   =  len(data)
-
                 self.connection.write(struct.pack("<L",size))
-                self.connection.write(data)
-
+                self.connection.write(data)                    
+                
             except Exception as e:
                 print("CameraStreamer failed to stream images:",e,"\n")
                 # Reinitialize the socket for reconnecting to client.  
                 self.connection = None
                 self._init_socket()
-                pass
-
-            
+                pass           

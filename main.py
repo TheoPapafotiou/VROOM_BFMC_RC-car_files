@@ -34,11 +34,10 @@ sys.path.append('.')
 
 import time
 import signal
-from multiprocessing import Pipe, Process, Event
+from multiprocessing import Pipe, Process, Event 
 
 # hardware imports
 from src.hardware.camera.cameraprocess               import CameraProcess
-from src.hardware.camera.cameraprocessperc           import CameraProcessPerc
 from src.hardware.serialhandler.serialhandler        import SerialHandler
 
 # data imports
@@ -46,18 +45,13 @@ from src.hardware.serialhandler.serialhandler        import SerialHandler
 
 # utility imports
 from src.utils.camerastreamer.camerastreamer       import CameraStreamer
-from src.utils.camerastreamer.camerastreamerperc   import CameraStreamerPerc
 from src.utils.cameraspoofer.cameraspooferprocess  import CameraSpooferProcess
 from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
-from src.utils.autonomous.perceptionprocess        import PerceptionProcess
-from src.utils.autonomous.logicprocess             import LogicProcess
 
 # =============================== CONFIG =================================================
 enableStream        =  True
-enableStreamPerception = True
-enableCameraSpoof   =  False
-enableRc            =  False
-enablePerception    =  True
+enableCameraSpoof   =  False 
+enableRc            =  True
 #================================ PIPES ==================================================
 
 
@@ -68,35 +62,22 @@ allProcesses = list()
 # =============================== HARDWARE PROCC =========================================
 # ------------------- camera + streamer ----------------------
 if enableStream:
-    camRPh, camSPh = Pipe(duplex = False) # -> photo transfering form camera to perception
-    camStRP, camStSP = Pipe(duplex = False) # -> perception photo for streaming
-    camStR, camStS = Pipe(duplex = False) # -> initial camera frame for streaming
-    
+    camStR, camStS = Pipe(duplex = False)           # camera  ->  streamer
 
     if enableCameraSpoof:
-        camSpoofer = CameraSpooferProcess([],[camSPh, camStS],'vid')
+        camSpoofer = CameraSpooferProcess([],[camStS],'vid')
         allProcesses.append(camSpoofer)
 
     else:
-        camProcess = CameraProcess([],[camSPh, camStS])
-        allProcesses.append(camProcess)
-    
-    #streamProcess = CameraStreamer([camStR], [])
-    #allProcesses.append(streamProcess)
-    
-    if enablePerception:
-        perc2logR, perc2logS = Pipe(duplex = False)
-        comR, comS = Pipe(duplex = False)
-        
-        # perception process
-        percProc = PerceptionProcess([camRPh], [camStSP, perc2logS])
-        allProcesses.append(percProc)
-        logProc = LogicProcess([perc2logR], [comS])
-        allProcesses.append(logProc)
-        shProc = SerialHandler([comR], [])
-        allProcesses.append(shProc)
-        streamPerc = CameraStreamer([camStR, camStRP], [])
-        allProcesses.append(streamPerc)
+        camProc = CameraProcess([],[camStS])
+        allProcesses.append(camProc)
+
+    streamProc = CameraStreamer([camStR], [])
+    allProcesses.append(streamProc)
+
+
+
+
 
 # =============================== DATA ===================================================
 #gps client process
@@ -117,14 +98,12 @@ if enableRc:
     rcProc = RemoteControlReceiver([],[rcShS])
     allProcesses.append(rcProc)
 
-
-
 print("Starting the processes!",allProcesses)
 for proc in allProcesses:
     proc.daemon = True
     proc.start()
 
-blocker = Event()
+blocker = Event()  
 
 try:
     blocker.wait()

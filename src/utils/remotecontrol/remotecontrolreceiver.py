@@ -54,7 +54,6 @@ class RemoteControlReceiver(WorkerProcess):
     def run(self):
         """Apply the initializing methods and start the threads
         """
-        print("\nI am remotely here\n")
         self._init_socket()
         super(RemoteControlReceiver,self).run()
 
@@ -62,7 +61,6 @@ class RemoteControlReceiver(WorkerProcess):
     def _init_socket(self):
         """Initialize the communication socket
         """
-        print("\nI am remotely here 2\n")
         self.server_socket = socket.socket(
                                     family  = socket.AF_INET, 
                                     type    = socket.SOCK_DGRAM
@@ -73,7 +71,6 @@ class RemoteControlReceiver(WorkerProcess):
     def _init_threads(self):
         """Initialize the read thread to transmite the received messages to other processes. 
         """
-        print("\nI am remotely here 3\n")
         readTh = Thread(name='ReceiverCommand',target = self._read_stream, args = (self.outPs, ))
         self.threads.append(readTh)
 
@@ -86,7 +83,6 @@ class RemoteControlReceiver(WorkerProcess):
         outPs : list(Pipe)
             List of the output pipes.
         """
-        print("\nI am remotely here 4\n")
         try:
             while True:
                 

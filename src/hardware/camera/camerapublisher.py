@@ -76,9 +76,9 @@ class CameraPublisher(ThreadWithStop):
 
         # camera settings
         self.camera.resolution      =   (1640,1232)
-        self.camera.framerate       =   10
+        self.camera.framerate       =   15
 
-        self.camera.brightness      =   55
+        self.camera.brightness      =   50
         self.camera.shutter_speed   =   1200
         self.camera.contrast        =   0
         self.camera.iso             =   0 # auto
@@ -131,7 +131,6 @@ class CameraPublisher(ThreadWithStop):
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (480, 640, 3))
             stamp = time.time()
-            #print("stamp = ", stamp)
 
             # output image and time stamp
             # Note: The sending process can be blocked, when doesn't exist any consumer process and it reaches the limit size.

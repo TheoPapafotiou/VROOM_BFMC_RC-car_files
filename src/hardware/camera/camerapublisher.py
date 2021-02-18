@@ -75,13 +75,13 @@ class CameraPublisher(ThreadWithStop):
         self.camera = PiCamera()
 
         # camera settings
-        self.camera.resolution      =   (1640,1232)
-        self.camera.framerate       =   15
+        #self.camera.resolution      =   (int(1640/4),int(1232/4))
+        #self.camera.framerate       =   15
 
-        self.camera.brightness      =   50
-        self.camera.shutter_speed   =   1200
-        self.camera.contrast        =   0
-        self.camera.iso             =   0 # auto
+        #self.camera.brightness      =   55
+        #self.camera.shutter_speed   =   1200
+        #self.camera.contrast        =   0
+        #self.camera.iso             =   0 # auto
         
 
         self.imgSize                =   (640, 480)    # the actual image size
@@ -131,6 +131,7 @@ class CameraPublisher(ThreadWithStop):
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (480, 640, 3))
             stamp = time.time()
+            #print("stamp = ", stamp)
 
             # output image and time stamp
             # Note: The sending process can be blocked, when doesn't exist any consumer process and it reaches the limit size.

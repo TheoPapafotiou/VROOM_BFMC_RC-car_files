@@ -34,7 +34,7 @@ sys.path.append('.')
 
 import time
 import signal
-from multiprocessing import Pipe, Process, Event 
+from multiprocessing import Pipe, Process, Event
 
 # hardware imports
 from src.hardware.camera.cameraprocess               import CameraProcess
@@ -47,11 +47,15 @@ from src.hardware.serialhandler.serialhandler        import SerialHandler
 from src.utils.camerastreamer.camerastreamer       import CameraStreamer
 from src.utils.cameraspoofer.cameraspooferprocess  import CameraSpooferProcess
 from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
+from src.utils.autonomous.perceptionprocess        import PerceptionProcess
+from src.utils.autonomous.logicprocess             import LogicProcess
 
 # =============================== CONFIG =================================================
 enableStream        =  True
-enableCameraSpoof   =  False 
-enableRc            =  True
+enableStreamPerception = True
+enableCameraSpoof   =  False
+enableRc            =  False
+enablePerception    =  True
 #================================ PIPES ==================================================
 
 
@@ -62,22 +66,43 @@ allProcesses = list()
 # =============================== HARDWARE PROCC =========================================
 # ------------------- camera + streamer ----------------------
 if enableStream:
-    camStR, camStS = Pipe(duplex = False)           # camera  ->  streamer
+    camRPh, camSPh = Pipe(duplex = False) # -> photo transfering from camera to perception
+    camStRP, camStSP = Pipe(duplex = False) # -> perception photo for streaming
+    camStR, camStS = Pipe(duplex = False) # -> initial camera frame for streaming
+    
 
-    if enableCameraSpoof:
-        camSpoofer = CameraSpooferProcess([],[camStS],'vid')
-        allProcesses.append(camSpoofer)
+    #if enableCameraSpoof:
+    #    camSpoofer = CameraSpooferProcess([],[camSPh, camStS],'vid')
+    #    allProcesses.append(camSpoofer)
 
+    #else:
+    #    camProcess = CameraProcess([],[camStS])
+    #    allProcesses.append(camProcess)
+    
+    #streamProcess = CameraStreamer([camStR], [])
+    #allProcesses.append(streamProcess)
+    if enablePerception is False:
+        camProcess = CameraProcess([],[camStS])
+        allProcesses.append(camProcess)
+        
+        streamProc = CameraStreamer([camStR], [])
+        allProcesses.append(streamProc)
+    
     else:
-        camProc = CameraProcess([],[camStS])
-        allProcesses.append(camProc)
-
-    streamProc = CameraStreamer([camStR], [])
-    allProcesses.append(streamProc)
-
-
-
-
+        perc2logR, perc2logS = Pipe(duplex = False)
+        comR, comS = Pipe(duplex = False)
+        
+        camProcess = CameraProcess([],[camSPh])
+        allProcesses.append(camProcess)
+        # perception process
+        percProc = PerceptionProcess([camRPh], [camStSP, perc2logS])
+        allProcesses.append(percProc)
+        logProc = LogicProcess([perc2logR], [comS])
+        allProcesses.append(logProc)
+        shProc = SerialHandler([comR], [])
+        allProcesses.append(shProc)
+        streamPerc = CameraStreamer([camStRP], [])
+        allProcesses.append(streamPerc)
 
 # =============================== DATA ===================================================
 #gps client process
@@ -98,23 +123,33 @@ if enableRc:
     rcProc = RemoteControlReceiver([],[rcShS])
     allProcesses.append(rcProc)
 
+
+
 print("Starting the processes!",allProcesses)
 for proc in allProcesses:
     proc.daemon = True
     proc.start()
 
-blocker = Event()  
+blocker = Event()
 
 try:
     blocker.wait()
 except KeyboardInterrupt:
     print("\nCatching a KeyboardInterruption exception! Shutdown all processes.\n")
+    proc_counter = 0
     for proc in allProcesses:
+        proc_counter += 1
         if hasattr(proc,'stop') and callable(getattr(proc,'stop')):
             print("Process with stop",proc)
+            if proc_counter == 3:
+                proc.reset = True
+                time.sleep(1)
             proc.stop()
             proc.join()
         else:
             print("Process witouth stop",proc)
+            if proc_counter == 3:
+                proc.reset = True
+                time.sleep(1)
             proc.terminate()
             proc.join()

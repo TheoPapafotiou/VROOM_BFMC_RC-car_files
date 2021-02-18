@@ -65,10 +65,17 @@ class BNOhandler(threading.Thread):
             if self.imu.IMURead():
                 self.data = self.imu.getIMUData()
                 self.fusionPose = self.data["fusionPose"]
+                self.gyro = self.data["gyro"]
                 self.roll  =  math.degrees(self.fusionPose[0])
                 self.pitch =  math.degrees(self.fusionPose[1])
                 self.yaw   =  math.degrees(self.fusionPose[2])
-                print("roll = %f pitch = %f yaw = %f" % (self.roll,self.pitch,self.yaw))
+                self.velx = math.degrees(self.gyro[0])
+                self.vely = math.degrees(self.gyro[1])
+                self.velz = math.degrees(self.gyro[2])
+                
+                #print("roll = %f pitch = %f yaw = %f" % (self.roll,self.pitch,self.yaw))
+                print("gyro-x = %f gyro-y = %f gyro-z = %f" % (self.velx,self.vely,self.velz))
+               
                 time.sleep(self.poll_interval*1.0/1000.0)
 
     def stop(self): 

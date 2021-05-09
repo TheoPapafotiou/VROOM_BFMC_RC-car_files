@@ -48,11 +48,12 @@ from src.utils.camerastreamer.camerastreamer       import CameraStreamer
 from src.utils.cameraspoofer.cameraspooferprocess  import CameraSpooferProcess
 from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
 from src.utils.autonomous.perceptionprocess        import PerceptionProcess
+from src.utils.autonomous.signDetectionprocess     import SignDetectionProcess
 from src.utils.autonomous.logicprocess             import LogicProcess
 
 # =============================== CONFIG =================================================
 enableStream        =  True
-enableStreamPerception = True
+enableStreamPerception = False
 enableCameraSpoof   =  False
 enableRc            =  False
 enablePerception    =  True
@@ -91,16 +92,24 @@ if enableStream:
     else:
         perc2logR, perc2logS = Pipe(duplex = False)
         comR, comS = Pipe(duplex = False)
+        signInitR, signInitS = Pipe(duplex = False)
+        signR, signS = Pipe(duplex = False)
         
         camProcess = CameraProcess([],[camSPh])
         allProcesses.append(camProcess)
-        # perception process
-        percProc = PerceptionProcess([camRPh], [camStSP, perc2logS])
+        
+        percProc = PerceptionProcess([camRPh, signR], [camStSP, perc2logS, signInitS])
         allProcesses.append(percProc)
+        
         logProc = LogicProcess([perc2logR], [comS])
         allProcesses.append(logProc)
-        shProc = SerialHandler([comR], [])
-        allProcesses.append(shProc)
+        
+        signProc = SignDetectionProcess([signInitR], [signS])
+        allProcesses.append(signProc)
+        
+        #shProc = SerialHandler([comR], [])
+        #allProcesses.append(shProc)
+        
         streamPerc = CameraStreamer([camStRP], [])
         allProcesses.append(streamPerc)
 
@@ -135,21 +144,24 @@ blocker = Event()
 try:
     blocker.wait()
 except KeyboardInterrupt:
-    print("\nCatching a KeyboardInterruption exception! Shutdown all processes.\n")
+    print("\nCatching a Keyboard Interruption exception! Shutdown all processes.\n")
+    
+    for i in range (0, 20):
+        allProcesses[2].reset.value = 1
+    
     proc_counter = 0
     for proc in allProcesses:
         proc_counter += 1
         if hasattr(proc,'stop') and callable(getattr(proc,'stop')):
             print("Process with stop",proc)
             if proc_counter == 3:
-                proc.reset = True
+                proc.reset.value = 1
+                #print("I'm trying to reset it")
+                #print("This is the reset1: ", proc.reset)
                 time.sleep(1)
             proc.stop()
             proc.join()
         else:
-            print("Process witouth stop",proc)
-            if proc_counter == 3:
-                proc.reset = True
-                time.sleep(1)
+            print("Process without stop",proc)
             proc.terminate()
             proc.join()

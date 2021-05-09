@@ -43,14 +43,13 @@ import multiprocessing
 from multiprocessing import Process,Event
 
 from src.utils.templates.workerprocess         import WorkerProcess
-from src.utils.autonomous.sign_detection       import SignDetection
 from src.utils.autonomous.ped_detection        import PedestrianDetection
+#from src.utils.autonomous.sign_detection       import SignDetection
 from src.utils.autonomous.shapes_detection     import ShapesDetection
 from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
-from src.utils.autonomous.tracker              import Tracker
 
 
 class PerceptionProcess(WorkerProcess):
@@ -67,9 +66,9 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        self.signDet = SignDetection()
+        #self.signDet = SignDetection()
         self.pedDet = PedestrianDetection()
-        self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
+        #self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
         #self.tracker = cv2.TrackerCSRT_create()      # low speed, high accuracy
         #self.shapesDet = ShapesDetection()
         #self.port       =   2244
@@ -78,9 +77,12 @@ class PerceptionProcess(WorkerProcess):
         self.imgSize    = (480,640,3)
         self.imgHeight = 480
         self.imgWidth = 640
+        self.img_sign = np.zeros((640, 480))
         self.countFrames = 0
         self.countFours = 0
-        self.speed = 0.5
+        self.speed = 0.2
+        self.intersection_navigation = False
+        self.found_intersection = False
         self.curr_steering_angle = 90
     # ===================================== RUN ==========================================
     def run(self):
@@ -92,19 +94,11 @@ class PerceptionProcess(WorkerProcess):
     def _init_threads(self):
         """Initialize the read thread to receive the video.
         """
-        readTh = Thread(name = 'PhotoReceiving',target = self._read_stream, args= (self.inPs[0], ))
+        readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
-        """Initialize the read thread to send the edited video.
-        """
-        #sendTh = Thread(name = 'PhotoSending',target = self._read_stream, args= (self.inPs[0], self.outPs[0]))
-        #self.threads.append(sendTh)
     
-    def drawBox(img, bbox):
-        x, y, w, h = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
-        cv2.rectangle(img, (x,y), ((x+w),(y+h)), (255, 0, 255), 3, 1)
-        
     # ===================================== READ STREAM ==================================
-    def _read_stream(self, inP):
+    def _read_stream(self):
         """Read the image from input stream, decode it and show it.
 
         Parameters
@@ -117,60 +111,57 @@ class PerceptionProcess(WorkerProcess):
         
         while True:
             try:
-                stamps, img = inP.recv()
+                stamps, img = self.inPs[0].recv()
                 self.countFrames+=1
                 
                 # ----------------------- read image -----------------------
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img_dims = img[:,:,0].shape
+                mask = Mask(4, img_dims)
+                mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
+                processed_img = hf.image_processing(img)
+                masked_img = mask.apply_to_img(processed_img)
+                #Process frame -END-
                 
-                #if self.countFrames == 1:
-                #    bbox = cv2.selectROI("Tracking",img,False)
-                #
-                #    self.tracker.init(img, bbox)
+                # ----------------------detect sign in image -----------------------
+                if self.countFrames%20 == 1:
+                    print("Frame sent")
+                    self.outPs[2].send([[stamps], img])
+                    #label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
                 
-                # ----------------------edit image -----------------------
-                #self.shapesDet.getContours(img, imgGray)
-                if self.countFours == 8:
-                    self.countFours = 0
-                if self.countFrames%20 <= 1:
-                    self.countFours+=1
-                    #self.signDet.detectSign(img, self.imgHeight, self.imgWidth, self.countFours)
+                if self.countFrames%20 == 0:
+                    stamps, self.img_sign = self.inPs[1].recv()
+
+                #Detect lines -START-
+                lane_lines = hf.detect_lane(masked_img)
+                #Detect lines -END-
                 
-                self.curr_steering_angle = lk.lane_keeping(img, self.speed, self.curr_steering_angle)
-                #if self.countFrames%10 == 0:
-                    #print("I'm also here")
-                    #cv2.imwrite(str(stamps[0])+"_stop.jpg", img)
-                    
-                    
-                    #timer = cv2.getTickCount()
-                    #success, bbox = self.tracker.update(img)
-                    #bbox_save1 = bbox[0]/640
-                    #bbox_save2 = bbox[1]/480
-                    #bbox_save3 = bbox[2]/640
-                    #bbox_save4 = bbox[3]/480
-                    #print(bbox[0])
-                    #print(bbox_save1)
-                    #if bbox[0] != 0 and bbox[1] != 0:
-                    #    cv2.imwrite(str(stamps[0])+".jpg", img)
-                    #
-                    #if success:
-                    #    drawBox(img, bbox)
-                    #
-                    #else:
-                    #    cv2.putText(img, "Lost", (75,75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 3)
-                    #
-                    #fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
-                    #cv2.putText(img, str(int(fps)), (75,50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 3)
-                    #cv2.putText(img, "Tracking", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 3)
-                    #cv2.imshow("Tracking" , img)
+                #Detect intersections and distance to them -START-
+                line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
+                horizontal_line = hf.horizontal_line_detector(img, line_segments)
+                check_for_intersection = False
+                if(horizontal_line != None):
+                    distance, detected_hor_line = hf.distance2intersection(horizontal_line, img)
+                    #print(distance)
+                    if distance < 80:
+                        check_for_intersection = True
+                        found_intersection = True
+                        #speed = 0
+                
+                if(self.intersection_navigation is False or len(lane_lines) == 2):
+                    #print("LINE#: ",len(lane_lines))
+                    #speed = start_speed
+                    self.curr_steering_angle = lk.lane_keeping(img, lane_lines, self.speed, self.curr_steering_angle, masked_img)
+                    #self.curr_steering_angle /= 2
+                                
+                #DEBUG: Various helping windows -START-
+                #hough_img = hf.get_hough_img(img, lane_lines) #Makes image with single lines on top
+                #heading_img = hf.display_heading_line(hough_img, self.curr_steering_angle) #Makes image with heading line on top
                 
                 
                 # ----------------------- send results (image, perception) -------------------
-                #cv2.imshow("image", img)
-                #retval, buffer = cv2.imencode('.jpg', img)
-                #img_as_text = base64.b64encode(buffer)
                 perception_results = [self.curr_steering_angle]
-                self.outPs[0].send([[stamps], img])
+                self.outPs[0].send([[stamps], self.img_sign])
                 self.outPs[1].send(perception_results)
                 
             except:

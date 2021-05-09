@@ -6,37 +6,13 @@ class SignDetection:
     def __init__(self):
         print("All signs init")
         self.detections = {
-            5: {
+            0: {
             "class": ['ParkingSpot','Pedestrian','Ahead','HighayEnd','HighwayStart','PriorityRoad','Stop','NoEntry','Roundabout','TrafficLights'],
             "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov3_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov3_tiny-custom_total.weights")
-            }
-            
-            
+            }  
         }
-        """
-        1: {
-                "class": ['Stop', 'No_entry', 'Roundabout_mandatory'],
-                "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov3_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov3_tiny-custom_redSigns.weights")
-        }
-        0: {
-            "class": ['Parking_Spot', 'Pedestrians', 'Ahead'],
-            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov3_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov3_tiny-custom_blueSigns.weights")
-        },
-        2: {
-            "class": ['Highway_End', 'Highway_Start'],
-            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov2_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov2_tiny-custom_greenSigns.weights")
-        },
-        3: {
-            "class": ['Priority_road'],
-            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov1_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov1_tiny-custom_prioritySigns.weights")
-        },
-        4: {
-            "class": ['Traffic_Light'],
-            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov1_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov1_tiny-custom_trafficLights.weights")
-        }
-        """
 
-    def detectSignProcedure(self, net, classes, blob, img, hight, width):
+    def detectSignProcedure(self, net, classes, blob, img, height, width):
         net.setInput(blob)
         output_layers_name = net.getUnconnectedOutLayersNames()
         layerOutputs = net.forward(output_layers_name)
@@ -44,17 +20,18 @@ class SignDetection:
         boxes =[]
         confidences = []
         class_ids = []
+        print("In the procedure")
 
         for output in layerOutputs:
             for detection in output:
                 score = detection[5:]
                 class_id = np.argmax(score)
                 confidence = score[class_id]
-                if confidence > 0.5:
+                if confidence > 0.3:
                     center_x = int(detection[0] * width)
-                    center_y = int(detection[1] * hight)
+                    center_y = int(detection[1] * height)
                     w = int(detection[2] * width)
-                    h = int(detection[3]* hight)
+                    h = int(detection[3]* height)
                     x = int(center_x - w/2)
                     y = int(center_y - h/2)
                     boxes.append([x,y,w,h])
@@ -73,17 +50,25 @@ class SignDetection:
                 color = colors[i]
                 cv2.rectangle(img,(x,y),(x+w,y+h),color,2)
                 cv2.putText(img,label + " " + confidence, (x,y+100),font,2,color,2)
+                
+                return label, confidence
+        
+        return "Something", 0.0
 
-
-    def detectSign(self, img, hight, width, countFours):
+    def detectSign(self, img, height, width):
         blob = cv2.dnn.blobFromImage(img, 1/255,(416,416),(0,0,0),swapRB = True,crop= False)
-        cfs = 5#int((countFours - 1) / 2)
-        print("I'm working on 5th class")
-        self.detectSignProcedure(
+        cfs = 0
+        print("I'm working on the class")
+        label = "Something"
+        confidence = 0.0
+        label, confidence = self.detectSignProcedure(
             self.detections[cfs]['net'],
             self.detections[cfs]['class'],
             blob,
             img,
-            hight,
+            height,
             width
         )
+        print(label, confidence)
+        return label, confidence
+

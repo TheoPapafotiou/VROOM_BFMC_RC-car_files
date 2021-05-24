@@ -41,7 +41,7 @@ class LaneKeeping:
         
 
         if len(lane_lines) == 0:
-            return -90
+            return 0
         
         if len(lane_lines) == 1:
             x_offset, y_offset = LaneKeeping.get_heading_line_with_one_lane(lane_lines, img)
@@ -49,14 +49,14 @@ class LaneKeeping:
             x_offset, y_offset = LaneKeeping.get_heading_line_with_two_lanes(lane_lines, img)
         
         
-        #Angle in radina to center vertical line
+        #Angle in radina to gcenter vertical line
         angle_to_mid_radian = math.atan(float(x_offset) / float(y_offset)) 
 
         #Convert to degrees 
         angle_to_mid_deg = int(angle_to_mid_radian * 180.0 / math.pi)
         
         #Steering angle needed
-        steering_angle = (angle_to_mid_deg + 90)
+        steering_angle = (angle_to_mid_deg )
              
 
         return steering_angle
@@ -65,7 +65,7 @@ class LaneKeeping:
     def steer(frame, lane_lines, curr_steering_angle):
         
         if(len(lane_lines) == 0):
-            return 90
+            return 0
         
         new_steering_angle = LaneKeeping.get_steering_angle(lane_lines, frame)
         curr_steering_angle = LaneKeeping.stabilize_steering_angle(curr_steering_angle, new_steering_angle, len(lane_lines))
@@ -112,20 +112,9 @@ class LaneKeeping:
         return stabilized_steering_angle
 
     @staticmethod
-    def lane_keeping(frame, speed, curr_steering_angle):
-            #Process frame -START- 
+    def lane_keeping(frame, lane_lines, speed, curr_steering_angle, masked_img=None):
+        
 
-        img_dims = frame[:,:,0].shape
-        mask = Mask(4, img_dims)
-        mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
-
-        processed_img = hf.image_processing(frame)
-        masked_img = mask.apply_to_img(processed_img)
-        #Process frame -END-
-
-        #Detect lines -START-
-        lane_lines = hf.detect_lane(masked_img)
-        #Detect lines -END- 
         
         #DEBUG: Show line segments detected -START-
         line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
@@ -144,38 +133,7 @@ class LaneKeeping:
         #Calculate steering angle -END-
 
 
-        #DEBUG: Various helping windows -START-
-        hough_img = hf.get_hough_img(frame, lane_lines) #Makes image with single lines on top
-        heading_img = hf.display_heading_line(hough_img, curr_steering_angle) #Makes image with heading line on top
-
-        #Put text
-        font                   = cv2.FONT_HERSHEY_SIMPLEX
-        textPosition           = (10,50)
-        fontScale              = 1
-        fontColor              = (255,0,0)
-        lineType               = 2
-        
-        cv2.putText(heading_img,'Speed: ' + str(speed), 
-        textPosition, 
-        font, 
-        fontScale,
-        fontColor,
-        lineType)
-
-        textPositionSecond           = (10,100)
-        fontColor             		 = (0,0,255)
-        cv2.putText(heading_img,'Steering Angle: ' + str((curr_steering_angle - 90) ), 
-        textPositionSecond, 
-        font, 
-        fontScale,
-        fontColor,
-        lineType)
-
-
-
-        cv2.imshow("Heading Line", heading_img) #Shows the heading line
         #cv2.imshow("Single Line", hough_img) #Shows the merged lines
         #cv2.imshow("Masked Image", masked_img) #Shows the masked image
         #DEBUG: Various helping windows -END-
         return curr_steering_angle
-

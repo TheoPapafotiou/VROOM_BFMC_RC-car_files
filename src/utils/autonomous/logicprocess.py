@@ -32,12 +32,15 @@ import time
 import random
 
 from threading       import  Thread
-from multiprocessing import  Pipe
+from multiprocessing import Value
+from multiprocessing import Pipe
+
 
 from src.utils.templates.workerprocess          import WorkerProcess
 
 class LogicProcess(WorkerProcess):
     # ===================================== INIT==========================================
+    #reset = False
     def __init__(self, inPs, outPs):
         """Logic Process. This should run on RPi4.
 
@@ -47,7 +50,7 @@ class LogicProcess(WorkerProcess):
         # Can be change to a multithread.Queue.
         self.lisBrR, self.lisBrS = Pipe(duplex=False)
 
-        self.reset     = False
+        self.reset = Value("i", 0)
         self.port      =  12244
         self.serverIp  = '0.0.0.0'
 
@@ -76,18 +79,24 @@ class LogicProcess(WorkerProcess):
     # ===================================== SEND COMMAND =================================
     def _send_command_thread(self, inP):
         """Transmite the command"""
-        while self.reset is False:
-            time.sleep(1)
+        
+        #self.reset = False
+        #print("This is the reset2: ", self.reset)
+        while self.reset.value == 0:
+            
+            print("This is a reset: ", self.reset.value)
+            time.sleep(0.0)
             perception_results = inP.recv()
             """
             This is the place where we will decide for the command
             """
             current_angle = perception_results[0]*1.0 - 90.0
             if(abs(current_angle - 90) >= 5):
-                speed = 0.1
+                speed = 0.0
             else:
-                speed = 1.0                
-                
+                speed = 0.0             
+            #current_angle/= 2
+            #current_angle = int(current_angle)
             print("Speed: ", speed, "  Angle: ", current_angle)
             command = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
             try:
@@ -102,4 +111,5 @@ class LogicProcess(WorkerProcess):
         print("Reset variables to 0.0")
         command = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
         for outP in self.outPs:
+            print("I will send the commands my lord")
             outP.send(command)

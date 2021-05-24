@@ -71,17 +71,6 @@ if enableStream:
     camStRP, camStSP = Pipe(duplex = False) # -> perception photo for streaming
     camStR, camStS = Pipe(duplex = False) # -> initial camera frame for streaming
     
-
-    #if enableCameraSpoof:
-    #    camSpoofer = CameraSpooferProcess([],[camSPh, camStS],'vid')
-    #    allProcesses.append(camSpoofer)
-
-    #else:
-    #    camProcess = CameraProcess([],[camStS])
-    #    allProcesses.append(camProcess)
-    
-    #streamProcess = CameraStreamer([camStR], [])
-    #allProcesses.append(streamProcess)
     if enablePerception is False:
         camProcess = CameraProcess([],[camStS])
         allProcesses.append(camProcess)
@@ -107,8 +96,8 @@ if enableStream:
         signProc = SignDetectionProcess([signInitR], [signS])
         allProcesses.append(signProc)
         
-        #shProc = SerialHandler([comR], [])
-        #allProcesses.append(shProc)
+        shProc = SerialHandler([comR], [])
+        allProcesses.append(shProc)
         
         streamPerc = CameraStreamer([camStRP], [])
         allProcesses.append(streamPerc)
@@ -117,8 +106,6 @@ if enableStream:
 #gps client process
 # gpsProc = GpsProcess([], [gpsBrS])
 # allProcesses.append(gpsProc)
-
-
 
 # ===================================== CONTROL ==========================================
 #------------------- remote controller -----------------------
@@ -131,8 +118,6 @@ if enableRc:
 
     rcProc = RemoteControlReceiver([],[rcShS])
     allProcesses.append(rcProc)
-
-
 
 print("Starting the processes!",allProcesses)
 for proc in allProcesses:
@@ -156,8 +141,6 @@ except KeyboardInterrupt:
             print("Process with stop",proc)
             if proc_counter == 3:
                 proc.reset.value = 1
-                #print("I'm trying to reset it")
-                #print("This is the reset1: ", proc.reset)
                 time.sleep(1)
             proc.stop()
             proc.join()

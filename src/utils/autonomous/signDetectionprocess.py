@@ -88,4 +88,3 @@ class SignDetectionProcess(WorkerProcess):
                 pass                
             
         print("Exiting Sign-detection thread");
-

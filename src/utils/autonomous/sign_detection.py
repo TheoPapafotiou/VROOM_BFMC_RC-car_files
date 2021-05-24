@@ -71,4 +71,3 @@ class SignDetection:
         )
         print(label, confidence)
         return label, confidence
-

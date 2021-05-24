@@ -23,9 +23,9 @@ class HelperFunctions:
             #Draw hough lines
             if type(hough_lines) == list:
                 for line in hough_lines:
-                    cv2.line(hough_image, line.get_first_endpoint(), line.get_second_endpoint(), (R, G, B), 30)
+                    cv2.line(hough_image, line.get_first_endpoint(), line.get_second_endpoint(), (R, G, B), 10)
             else:
-                cv2.line(hough_image, hough_lines.get_first_endpoint(), hough_lines.get_second_endpoint(), (R, G, B), 30)
+                cv2.line(hough_image, hough_lines.get_first_endpoint(), hough_lines.get_second_endpoint(), (R, G, B), 10)
         else:
             pass
         
@@ -33,6 +33,7 @@ class HelperFunctions:
     
     @staticmethod
     def display_heading_line(img, steering_angle, line_color=(0, 0, 255), line_width = 5):
+
         heading_image = np.zeros_like(img)
         height, width, _ = img.shape
             
@@ -43,14 +44,26 @@ class HelperFunctions:
         # However, the angles calculated here are in the range of 0 - 180
         #(x1,y1) are always center of the screen
         #(x2,y2) calculated with trig
+        #print("Angle inside heading line: " + str(steering_angle))
         steering_angle_radian = steering_angle / 180.0 * math.pi
-        x1 = int(width / 2)
-        y1 = height
-        if(steering_angle_radian == 0):
+        
+        #print("Angle inside heading line radian: " + str(steering_angle_radian))
+        if(steering_angle == 0 or abs(steering_angle) == 90):
+            x1 = int(width / 2)
+            y1 = height
             x2 = x1
-        else:
-            x2 = int(x1 - height / 2 / math.tan(steering_angle_radian))
-        y2 = int(height / 2)
+            y2 = int(height / 2)
+        elif(steering_angle_radian > 0):
+            x1 = int(width / 2)
+            y1 = height
+            x2 = int(x1 + (height / 2) / math.tan((math.pi/2) - steering_angle_radian))
+            y2 = int(height / 2)
+            #print("X2 is: " + str(x2))
+        elif(steering_angle_radian < 0):
+            x2 = int(width/2)
+            x1 = int(x2 - (height/2)/math.tan((math.pi/2)+steering_angle_radian))
+            y1 = int(height/2)
+            y2 = height
         
         cv2.line(heading_image, (x1, y1), (x2, y2), line_color, line_width)
         heading_image = cv2.addWeighted(img, 0.8, heading_image, 1, 1)
@@ -66,8 +79,7 @@ class HelperFunctions:
 
         #Image Thresholding (thresholding values could vary)
         #ret, thresh = cv2.threshold(img, 200, 50, cv2.THRESH_BINARY)
-        #edges = cv2.Canny(img, 200, 400)
-        edges = cv2.Canny(img, 200, 120)
+        edges = cv2.Canny(img, 200, 400)
     
         return edges
 
@@ -249,6 +261,64 @@ class HelperFunctions:
         return lane_lines
     
 
+    @staticmethod
+    def horizontal_line_detector(frame, line_segments):
+        lane_lines = []
+        
+        #If no line segments detected in frame, return an empty array
+        if line_segments is None:
+            return lane_lines
+        
+        #Get the height and width of the frame
+        height, width, i = frame.shape
+        #Array of lines of the left lane
+        left_fit = []
+        #Array of lines of the right lane
+        right_fit = []
+        #Array of horizontal lines
+        horizontal_lines = []
+
+        #Boundary for left and right lanes
+        boundary_width = 1.0/3.0
+        #Left lane line segment should be on left 2/3 of the screen
+        left_region_boundary = width * (1 - boundary_width)
+        #Right lane line segment should be on right 2/3 of the screen
+        right_region_boundary = width * boundary_width
+
+        boundary_height = 1.0/2.0
+        upper_boundary = height * boundary_height
+
+        intersection_boundary = height - (0.6) * height
+        for line_segment in line_segments:
+            coordinates = line_segment.get_endpoints()
+            for x1, y1, x2, y2 in coordinates:
+                #Fit the endpoints to a polynomial to get slope and intercept of line
+                #fit = np.polyfit((x1,x2), (y1, y2), 1)
+                
+                #intercept = fit[1]
+                line_width = np.abs(x1-x2)
+                if line_width < 0.06:
+                    slope = None
+                else: 
+                    slope = float(y2 - y1) / float(x2 - x1) 
+                    segment2centerX = (x1 + x2) / 2.0
+                    if line_width > 80:    
+                        if math.fabs(slope) < 0.1 and math.fabs(segment2centerX - (width / 2.0)) < 40:
+                            if max(y1,y2) > intersection_boundary: #and y2 > intersection_boundary:
+                                horizontal_lines.append(line_segment)
+                                continue
+
+
+        
+        #horizontal_line = HelperFunctions.make_line_average(height, width, horizontal_lines)
+        horizontal_line = None
+        if(len(horizontal_lines) > 0):
+            horizontal_line = HelperFunctions.make_line_from_segments(horizontal_lines)
+            hor_img = HelperFunctions.get_hough_img(frame, horizontal_line, R=255, G=0, B=0)
+            #cv2.imshow("Hor_line", hor_img)
+        
+        return horizontal_line
+
     #Developing method for testing where a line segment is detected (left right or if it horizontal)
     @staticmethod
     def line_tester(frame, line_segments):
@@ -314,39 +384,95 @@ class HelperFunctions:
                     elif x1 > right_region_boundary: #and x1 > right_region_boundary:
                         right_fit.append(line_segment)
 
+
         right_img = HelperFunctions.get_hough_img(frame, right_fit, R=255, G=0, B=0)
         left_img = HelperFunctions.get_hough_img(right_img, left_fit)
 
         return left_img
 
-    #Measures the distance to a horizontal line in pixels
+
+#NIKOS INTERSECTION
     @staticmethod
-    def measure_horizontal_lines_px(horizontal_line):
+    def distance2intersection(horizontal_line, frame):
+        height, width, i = frame.shape
+        horizontal_image = []
         found_intersection = False
-        intersection_line_width = 0
-        if(type(horizontal_line) != list):
+        vector2intersection = []
+        dist2intersection = []
+
+        if((horizontal_line) != None):
             coordinates = horizontal_line.get_endpoints()
             for x1, y1, x2, y2 in coordinates:
-                width = np.sqrt((math.pow((x2-x1),2)+ math.pow((y2-y1),2)))
-                # line width cannot surpass 530px (if screenWidth=640) so we filter the lines by size
-                if width < 530:
-                    intersection_line_width = (width)
-                    found_intersection = True
+                
+                intersection_centerX = (x1 + x2) / 2
+                intersection_centerY = (y1 + y2) / 2
+                center = width / 2
+                #print("Inter X: ", intersection_centerX)
+                #print("Inter X: ", intersection_centerX)
 
-        return intersection_line_width, found_intersection
+                dist2intersection = np.sqrt((math.pow((center-intersection_centerX),2)+ math.pow((height-intersection_centerY),2)))
+                # print(dist2intersection)
+                vector2intersection = np.array([center, height, intersection_centerX, intersection_centerY])
+                #img = frame.copy()
+
+                cv2.line(img, (center, height), (intersection_centerX, intersection_centerY), (0, 0, 255), 10)
+
+                cv2.imshow("DISTANCE", img)
+
+                #print(dist2intersection)
+                #print(vector2intersection)
 
 
-    #Returns the distance to an intersection line in mm
+                found_intersection = True
+
+        return dist2intersection, found_intersection
+
     @staticmethod
-    def distance_to_intersection_line(intersection_line_px):
-        # Camera specs
-        sensor_width = 3.68  # mm
-        sensor_height = 2.76  # mm
-        focal_length = 3.04  # mm
+    def stop_procedure(horizontal_line, frame):
+        width, height, i = frame.shape
+        timeToStop = False
 
-        frame_width = 640 #px
-        intersection_real_width = 420 #mm
-        intersection_width_px = intersection_line_px # px
+        if(type(horizontal_line) != list):
+            coordinates = horizontal_line.get_endpoints() 
+            for x1, y1, x2, y2 in coordinates:
+                y_average = (y1 + y2) / 2
+            if y_average < height - 0.1 * height:
+                timeToStop = True
+        return timeToStop
 
-        distance = (focal_length * intersection_real_width * frame_width) / (intersection_width_px * sensor_width)
-        return distance
+    @staticmethod
+    def second_timer(frame_counter, delay_sec):
+        seconds_running = 0
+
+        if (frame_counter >= 30):
+            seconds_running += frame_counter // 30
+            frame_counter = 0
+
+        if (seconds_running <= delay_sec):
+            print(seconds_running)
+            # True because we are waiting at the intersection
+            return True
+        else:
+            seconds_running = 0
+            # False because we are NOT waiting at the intersection
+            return False
+        
+    # for steering control, SetPoint is the desired angle and 
+    # processValue is the current steering angle
+    @staticmethod
+    def PI(Kp, Ki, SetPoint, processValue):
+        error = SetPoint - processValue
+        # 30fps so t = 1 / 30
+        t = 1.0 / 30.0
+
+        # Proportional 
+        P = Kp * error
+
+        # Integral
+        reset += (Ki / t) * error
+        I = Ki * error + reset
+
+        # Output Value
+        outputValue = P + I
+        print('P: ', P, 'I: ', I, 'Output Value: ', outputValue )
+        return outputValue

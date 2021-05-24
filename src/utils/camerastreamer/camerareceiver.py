@@ -98,6 +98,7 @@ class CameraReceiver(WorkerProcess):
         """
         try:
             while True:
+
                 # decode image
                 image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
                 bts = self.connection.read(image_len)

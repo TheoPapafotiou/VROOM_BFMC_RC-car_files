@@ -105,7 +105,7 @@ class listener(Thread):
         # Get orientation
         self.ang = complex(data['rot'])
         # Debug message
-        to_print = "ID: {}, poition: {}, orientation: {}.".format(self.ID,self.pos,self.ang)
+        to_print = "ID: {}, position: {}, orientation: {}.".format(self.ID,self.pos,self.ang)
         print(to_print)
 
 ## Method for running the listener thread (for testing purposes).

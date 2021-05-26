@@ -90,11 +90,8 @@ class LogicProcess(WorkerProcess):
             """
             This is the place where we will decide for the command
             """
-            current_angle = perception_results[0]*1.0 - 90.0
-            if(abs(current_angle - 90) >= 5):
-                speed = 0.0
-            else:
-                speed = 0.0             
+            current_angle = perception_results[0]*1.0
+            current_speed = perception_results[1]*1.0          
             #current_angle/= 2
             #current_angle = int(current_angle)
             print("Speed: ", speed, "  Angle: ", current_angle)

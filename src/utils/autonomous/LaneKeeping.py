@@ -2,9 +2,14 @@ import numpy as np
 import cv2
 import logging
 import math
-from src.utils.autonomous.Line                 import Line
-from src.utils.autonomous.Mask                 import Mask
-from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
+from Line import Line
+from Mask import Mask
+from HelperFunctions import HelperFunctions as hf
+
+"""
+This class is used for our lane keeping algorithm.
+"""
+
 class LaneKeeping:
 
     single_line_angle = 0
@@ -49,7 +54,7 @@ class LaneKeeping:
             x_offset, y_offset = LaneKeeping.get_heading_line_with_two_lanes(lane_lines, img)
         
         
-        #Angle in radina to gcenter vertical line
+        #Angle in radina to center vertical line
         angle_to_mid_radian = math.atan(float(x_offset) / float(y_offset)) 
 
         #Convert to degrees 
@@ -95,8 +100,6 @@ class LaneKeeping:
         
 
         angle_deviation = new_steering_angle - curr_steering_angle
-        #print("New: " + str(new_steering_angle) + " Curr: " + str(curr_steering_angle))
-        #print("Deviation: " + str(angle_deviation))
         if abs(angle_deviation) > max_angle_deviation:
             if(np.sign(angle_deviation) < 0):
                 stabilized_steering_angle = min(int(curr_steering_angle
@@ -105,10 +108,8 @@ class LaneKeeping:
                 stabilized_steering_angle = max(int(curr_steering_angle
                                                 + max_angle_deviation * angle_deviation / abs(angle_deviation)), new_steering_angle)
 
-        #    print("Add: " + str(max_angle_deviation * angle_deviation / abs(angle_deviation)))
         else:
             stabilized_steering_angle = new_steering_angle
-        #print('Proposed angle: %s, stabilized angle: %s' % (new_steering_angle, stabilized_steering_angle))
         return stabilized_steering_angle
 
     @staticmethod
@@ -119,12 +120,12 @@ class LaneKeeping:
         #DEBUG: Show line segments detected -START-
         line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
         line_segments_img = hf.get_hough_img(frame, line_segments)
-        cv2.imshow("Line Segments", line_segments_img)
+        #cv2.imshow("Line Segments", line_segments_img)
         #DEBUG: Show line segments detected -END-
 
         #DEBUG: Show where each line was detected (right, left) -START-
-        two_lines_specification_img = hf.line_tester(frame, line_segments)
-        cv2.imshow("Two Lines Specs", two_lines_specification_img)
+        # two_lines_specification_img = hf.line_tester(frame, line_segments)
+        #cv2.imshow("Two Lines Specs", two_lines_specification_img)
         #DEBUG: Show where each line was detected (right, left) -END-
 
         

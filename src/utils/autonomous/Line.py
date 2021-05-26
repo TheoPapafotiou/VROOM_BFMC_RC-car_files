@@ -1,9 +1,12 @@
-#Line Class: A class tha represents a single line.
-
 import numpy as np
 import math
 
+"""
+This class  represents a single line.
+"""
+    
 class Line:
+
     #The endpoints of the line [x0,y0,x1,y1]
     endpoints = np.zeros(4)
 
@@ -36,7 +39,6 @@ class Line:
         self.endpoints = np.copy(endpoints_in)
 
   
-
 
 
 

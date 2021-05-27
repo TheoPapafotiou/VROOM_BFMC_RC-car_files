@@ -131,8 +131,9 @@ try:
 except KeyboardInterrupt:
     print("\nCatching a Keyboard Interruption exception! Shutdown all processes.\n")
     
-    for i in range (0, 20):
+    for i in range (0, 5060):
         allProcesses[2].reset.value = 1
+        time.sleep(0.001)
     
     proc_counter = 0
     for proc in allProcesses:
@@ -141,7 +142,7 @@ except KeyboardInterrupt:
             print("Process with stop",proc)
             if proc_counter == 3:
                 proc.reset.value = 1
-                time.sleep(1)
+                time.sleep(5)
             proc.stop()
             proc.join()
         else:

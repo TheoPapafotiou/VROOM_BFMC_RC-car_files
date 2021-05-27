@@ -50,6 +50,7 @@ from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
+from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 
 
 class PerceptionProcess(WorkerProcess):
@@ -68,6 +69,7 @@ class PerceptionProcess(WorkerProcess):
         super(PerceptionProcess,self).__init__(inPs, outPs)
         #self.signDet = SignDetection()
         self.pedDet = PedestrianDetection()
+        self.lane_keeping = LaneKeepingReloaded(640, 480)
         #self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
         #self.tracker = cv2.TrackerCSRT_create()      # low speed, high accuracy
         #self.shapesDet = ShapesDetection()
@@ -151,7 +153,8 @@ class PerceptionProcess(WorkerProcess):
                 if(self.intersection_navigation is False or len(lane_lines) == 2):
                     #print("LINE#: ",len(lane_lines))
                     #speed = start_speed
-                    self.curr_steering_angle = lk.lane_keeping(img, lane_lines, self.speed, self.curr_steering_angle, masked_img)
+                    #self.curr_steering_angle = lk.lane_keeping(img, lane_lines, self.speed, self.curr_steering_angle, masked_img)
+                    self.curr_steering_angle, both_lanes = self.lane_keeping.lane_keeping_pipeline(img)
                     #self.curr_steering_angle /= 2
                                 
                 #DEBUG: Various helping windows -START-

@@ -2,8 +2,8 @@ import numpy as np
 import cv2
 import logging
 import math
-from Line import Line
-from Mask import Mask
+from src.utils.autonomous.Line import Line
+from src.utils.autonomous.Mask import Mask
 
 """
     This class implements important helper functions used in the lane detection and keeping algorithm.

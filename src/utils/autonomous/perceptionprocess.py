@@ -50,7 +50,7 @@ from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
-from bfmclib.LaneKeepingReloaded               import LaneKeepingReloaded
+from src.utils.autonomous.LaneKeepingReloaded               import LaneKeepingReloaded
 from src.utils.autonomous.MainFunctions        import MainFunctions as mf
 
 

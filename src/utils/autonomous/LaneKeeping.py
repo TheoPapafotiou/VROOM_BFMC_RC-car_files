@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 import logging
 import math
-from Line import Line
-from Mask import Mask
-from HelperFunctions import HelperFunctions as hf
+from src.utils.autonomous.Line import Line
+from src.utils.autonomous.Mask import Mask
+from src.utils.autonomous.HelperFunctions import HelperFunctions as hf
 
 """
 This class is used for our lane keeping algorithm.

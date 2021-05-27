@@ -96,8 +96,8 @@ if enableStream:
         signProc = SignDetectionProcess([signInitR], [signS])
         allProcesses.append(signProc)
         
-        shProc = SerialHandler([comR], [])
-        allProcesses.append(shProc)
+        #shProc = SerialHandler([comR], [])
+        #allProcesses.append(shProc)
         
         streamPerc = CameraStreamer([camStRP], [])
         allProcesses.append(streamPerc)

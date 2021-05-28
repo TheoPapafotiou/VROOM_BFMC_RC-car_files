@@ -86,6 +86,9 @@ class PerceptionProcess(WorkerProcess):
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 90
+        #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
+
     # ===================================== RUN ==========================================
     def run(self):
         """Apply the initializers and start the threads.
@@ -115,6 +118,8 @@ class PerceptionProcess(WorkerProcess):
             try:
                 stamps, img = self.inPs[0].recv()
                 self.countFrames+=1
+                #self.out.write(img)
+
                 
                 # ----------------------- read image -----------------------
                 #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -126,14 +131,14 @@ class PerceptionProcess(WorkerProcess):
                 #Process frame -END-
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
-                    print("Frame sent")
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
+                #if self.countFrames%20 == 1:
+                #   print("Frame sent")
+                #    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                #    self.outPs[2].send([[stamps], img_bgr])
                     #label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
                 
-                if self.countFrames%20 == 0:
-                    stamps, self.img_sign = self.inPs[1].recv()
+                #if self.countFrames%20 == 0:
+                #   stamps, self.img_sign = self.inPs[1].recv()
 
                 #Detect lines -START-
                 lane_lines = hf.detect_lane(masked_img)
@@ -166,7 +171,10 @@ class PerceptionProcess(WorkerProcess):
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle]
                 self.outPs[0].send([[stamps], lane_frame])
-                self.outPs[1].send(perception_results)
+                start_time_command = time.time()
+                self.outPs[1].send([perception_results, start_time_command])
+                
                 
             except:
+                #self.out.release()
                 pass

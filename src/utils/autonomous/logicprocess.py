@@ -53,6 +53,7 @@ class LogicProcess(WorkerProcess):
         self.reset = Value("i", 0)
         self.port      =  12244
         self.serverIp  = '0.0.0.0'
+        self.count = 0
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -82,25 +83,32 @@ class LogicProcess(WorkerProcess):
         
         #self.reset = False
         #print("This is the reset2: ", self.reset)
-        
-        
+                
         while self.reset.value == 0:
-            
+                   
             time.sleep(0.0)
-            perception_results = inP.recv()
+            perception_results, start_time_command = inP.recv()
+            
+            end_time_command = time.time()
+            print(end_time_command - start_time_command)
             """
             This is the place where we will decide for the command
             """
             current_angle = perception_results[0]*1.0
-            speed = 0.0
+            speed = 0.2
             #current_angle/= 2
             #current_angle = int(current_angle)
             print("Speed: ", speed, "  Angle: ", current_angle)
-            command = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
+            commandP = {'action': 'PIDA','activate': False}
+            command = {'action': 'MCTL', 'speed': speed, 'steerAngle': round(current_angle, 1)}
+            
             try:
                 for outP in self.outPs:
+                    if(self.count == 0):
+                        outP.send(commandP)
+                        self.count += 1
                     outP.send(command)
-                
+
             except Exception as e:
                 print(e)
         

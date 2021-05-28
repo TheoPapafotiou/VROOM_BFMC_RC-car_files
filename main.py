@@ -142,7 +142,7 @@ except KeyboardInterrupt:
             print("Process with stop",proc)
             if proc_counter == 3:
                 proc.reset.value = 1
-                time.sleep(5)
+                time.sleep(2)
             proc.stop()
             proc.join()
         else:

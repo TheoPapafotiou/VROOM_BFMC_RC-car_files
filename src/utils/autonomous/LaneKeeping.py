@@ -119,12 +119,12 @@ class LaneKeeping:
         #DEBUG: Show line segments detected -START-
         line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
         line_segments_img = hf.get_hough_img(frame, line_segments)
-        cv2.imshow("Line Segments", line_segments_img)
+        #cv2.imshow("Line Segments", line_segments_img)
         #DEBUG: Show line segments detected -END-
 
         #DEBUG: Show where each line was detected (right, left) -START-
         two_lines_specification_img = hf.line_tester(frame, line_segments)
-        cv2.imshow("Two Lines Specs", two_lines_specification_img)
+        #cv2.imshow("Two Lines Specs", two_lines_specification_img)
         #DEBUG: Show where each line was detected (right, left) -END-
 
         

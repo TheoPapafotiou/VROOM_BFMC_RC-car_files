@@ -417,7 +417,7 @@ class HelperFunctions:
 
                 cv2.line(img, (center, height), (intersection_centerX, intersection_centerY), (0, 0, 255), 10)
 
-                cv2.imshow("DISTANCE", img)
+                #cv2.imshow("DISTANCE", img)
 
                 #print(dist2intersection)
                 #print(vector2intersection)

@@ -308,7 +308,7 @@ class LaneKeepingReloaded:
         #print("Error: ", weighted_mean - int(self.width / 2.0) )
         #cv2.imshow("Circle", cut_im)
         setpoint = weighted_mean
-        return error, setpoint
+        return error, setpoint, circle_im
         
     def weighted_average(self, num_list):
 
@@ -355,9 +355,11 @@ class LaneKeepingReloaded:
     def lane_keeping_pipeline(self, frame):
 
         warped = self.warp_image(frame)
-        thresh = self.threshold(warped)
+        gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+        thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                cv2.THRESH_BINARY,(2*40+1),-30)#self.threshold(warped)
         both_lanes = False
-
+        poly_image = thresh
         left, right = self.polyfit_sliding_window(thresh)
 
         if left is not None and right is not None:
@@ -369,7 +371,7 @@ class LaneKeepingReloaded:
             poly_image = self.plot_points(left_x, left_y,right_x, right_y, warped)
             #cv2.imshow("Poly", poly_image)
             
-            error, setpoint = self.get_error(poly_image)
+            error, setpoint, circle_im = self.get_error(poly_image)
             
             nose2wheel = 320
 
@@ -410,4 +412,4 @@ class LaneKeepingReloaded:
         else:
             angle = 0
     
-        return angle, both_lanes
+        return angle, both_lanes, poly_image

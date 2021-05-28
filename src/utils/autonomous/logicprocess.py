@@ -82,19 +82,17 @@ class LogicProcess(WorkerProcess):
         
         #self.reset = False
         #print("This is the reset2: ", self.reset)
+        
+        
         while self.reset.value == 0:
             
-            print("This is a reset: ", self.reset.value)
             time.sleep(0.0)
             perception_results = inP.recv()
             """
             This is the place where we will decide for the command
             """
-            current_angle = perception_results[0]*1.0 - 90.0
-            if(abs(current_angle - 90) >= 5):
-                speed = 0.0
-            else:
-                speed = 0.0             
+            current_angle = perception_results[0]*1.0
+            speed = 0.0
             #current_angle/= 2
             #current_angle = int(current_angle)
             print("Speed: ", speed, "  Angle: ", current_angle)
@@ -106,6 +104,7 @@ class LogicProcess(WorkerProcess):
             except Exception as e:
                 print(e)
         
+        print("This is a reset: ", self.reset.value)
         speed = 0.0
         current_angle = 0.0
         print("Reset variables to 0.0")

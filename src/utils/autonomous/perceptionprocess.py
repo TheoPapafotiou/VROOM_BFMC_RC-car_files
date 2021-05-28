@@ -132,7 +132,8 @@ class PerceptionProcess(WorkerProcess):
                 # ----------------------detect sign in image -----------------------
                 if self.countFrames%20 == 1:
                     print("Frame sent")
-                    self.outPs[2].send([[stamps], img])
+                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    self.outPs[2].send([[stamps], img_bgr])
                     #label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
                 
                 if self.countFrames%20 == 0:
@@ -154,11 +155,11 @@ class PerceptionProcess(WorkerProcess):
                         found_intersection = True
                         #speed = 0
                 
-                if(self.intersection_navigation is False or len(lane_lines) == 2):
+                #if(self.intersection_navigation is False or len(lane_lines) == 2):
                     #print("LINE#: ",len(lane_lines))
                     #speed = start_speed
                     #self.curr_steering_angle = lk.lane_keeping(img, lane_lines, self.speed, self.curr_steering_angle, masked_img)
-                    self.curr_steering_angle, both_lanes = self.lane_keeping.lane_keeping_pipeline(img)
+                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                     #self.curr_steering_angle /= 2
                                 
                 #DEBUG: Various helping windows -START-
@@ -168,7 +169,7 @@ class PerceptionProcess(WorkerProcess):
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle]
-                self.outPs[0].send([[stamps], self.img_sign])
+                self.outPs[0].send([[stamps], lane_frame])
                 self.outPs[1].send(perception_results)
                 
             except:

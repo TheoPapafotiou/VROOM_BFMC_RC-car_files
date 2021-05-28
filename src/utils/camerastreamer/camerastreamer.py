@@ -53,7 +53,7 @@ class CameraStreamer(WorkerProcess):
         """
         super(CameraStreamer,self).__init__( inPs, outPs)
         #self.serverIp   =  '192.168.3.117' # PC ip
-        self.serverIp   =  '192.168.1.3' # PC ip 
+        self.serverIp   =  '192.168.3.122' # PC ip 
         self.port       =  2244            # com port
         self.frameCounter = 0
         

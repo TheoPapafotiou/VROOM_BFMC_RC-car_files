@@ -50,6 +50,7 @@ class LogicProcess(WorkerProcess):
         # Can be change to a multithread.Queue.
         self.lisBrR, self.lisBrS = Pipe(duplex=False)
 
+        self.enPID = True
         self.reset = Value("i", 0)
         self.port      =  12244
         self.serverIp  = '0.0.0.0'
@@ -83,7 +84,9 @@ class LogicProcess(WorkerProcess):
         #self.reset = False
         #print("This is the reset2: ", self.reset)
         
-        
+        if(enPID == True):
+            command = {'action': 'PIDA','activate': True}
+
         while self.reset.value == 0:
             
             time.sleep(0.0)

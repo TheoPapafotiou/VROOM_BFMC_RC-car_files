@@ -86,6 +86,8 @@ class PerceptionProcess(WorkerProcess):
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 90
+        self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self.out = cv2.VideoWriter('lab_test_video.mp4',fourcc, 30.0 , (imgWidth,imgHeight)) 
     # ===================================== RUN ==========================================
     def run(self):
         """Apply the initializers and start the threads.
@@ -110,7 +112,8 @@ class PerceptionProcess(WorkerProcess):
         """
         
         print('Start showing the photo')
-        
+        img = None
+
         while True:
             try:
                 stamps, img = self.inPs[0].recv()
@@ -119,6 +122,7 @@ class PerceptionProcess(WorkerProcess):
                 # ----------------------- read image -----------------------
                 #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 img_dims = img[:,:,0].shape
+                self.out.write(img)
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
                 processed_img = hf.image_processing(img)
@@ -168,4 +172,5 @@ class PerceptionProcess(WorkerProcess):
                 self.outPs[1].send(perception_results)
                 
             except:
+                self.out.release()
                 pass

@@ -70,11 +70,6 @@ class PerceptionProcess(WorkerProcess):
         #self.signDet = SignDetection()
         self.pedDet = PedestrianDetection()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
-        #self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
-        #self.tracker = cv2.TrackerCSRT_create()      # low speed, high accuracy
-        #self.shapesDet = ShapesDetection()
-        #self.port       =   2244
-        #self.serverIp   =   '0.0.0.0'
         
         self.imgSize    = (480,640,3)
         self.imgHeight = 480
@@ -116,19 +111,16 @@ class PerceptionProcess(WorkerProcess):
         
         while True:
             try:
+                start = time.time()
                 stamps, img = self.inPs[0].recv()
-                self.countFrames+=1
-                #self.out.write(img)
-
+                print("Time for taking the perception image: ", time.time() - start)
                 
                 # ----------------------- read image -----------------------
-                #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 img_dims = img[:,:,0].shape
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
                 processed_img = hf.image_processing(img)
                 masked_img = mask.apply_to_img(processed_img)
-                #Process frame -END-
                 
                 # ----------------------detect sign in image -----------------------
                 #if self.countFrames%20 == 1:
@@ -139,33 +131,11 @@ class PerceptionProcess(WorkerProcess):
                 
                 #if self.countFrames%20 == 0:
                 #   stamps, self.img_sign = self.inPs[1].recv()
-
-                #Detect lines -START-
-                lane_lines = hf.detect_lane(masked_img)
-                #Detect lines -END-
                 
-                #Detect intersections and distance to them -START-
-                line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
-                horizontal_line = hf.horizontal_line_detector(img, line_segments)
-                check_for_intersection = False
-                if(horizontal_line != None):
-                    distance, detected_hor_line = hf.distance2intersection(horizontal_line, img)
-                    #print(distance)
-                    if distance < 80:
-                        check_for_intersection = True
-                        found_intersection = True
-                        #speed = 0
-                
-                #if(self.intersection_navigation is False or len(lane_lines) == 2):
-                    #print("LINE#: ",len(lane_lines))
-                    #speed = start_speed
-                    #self.curr_steering_angle = lk.lane_keeping(img, lane_lines, self.speed, self.curr_steering_angle, masked_img)
+                start = time.time()
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                print("Lane Keeping duration: ", time.time() - start)
                     #self.curr_steering_angle /= 2
-                                
-                #DEBUG: Various helping windows -START-
-                #hough_img = hf.get_hough_img(img, lane_lines) #Makes image with single lines on top
-                #heading_img = hf.display_heading_line(hough_img, self.curr_steering_angle) #Makes image with heading line on top
                 
                 
                 # ----------------------- send results (image, perception) -------------------
@@ -176,5 +146,4 @@ class PerceptionProcess(WorkerProcess):
                 
                 
             except:
-                #self.out.release()
                 pass

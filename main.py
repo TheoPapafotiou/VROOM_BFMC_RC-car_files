@@ -93,8 +93,8 @@ if enableStream:
         logProc = LogicProcess([perc2logR], [comS])
         allProcesses.append(logProc)
         
-        signProc = SignDetectionProcess([signInitR], [signS])
-        allProcesses.append(signProc)
+        # signProc = SignDetectionProcess([signInitR], [signS])
+        # allProcesses.append(signProc)
         
         shProc = SerialHandler([comR], [])
         allProcesses.append(shProc)

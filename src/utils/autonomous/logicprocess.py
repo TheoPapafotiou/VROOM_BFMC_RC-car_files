@@ -80,13 +80,9 @@ class LogicProcess(WorkerProcess):
     # ===================================== SEND COMMAND =================================
     def _send_command_thread(self, inP):
         """Transmite the command"""
-        
-        #self.reset = False
-        #print("This is the reset2: ", self.reset)
                 
         while self.reset.value == 0:
-                   
-            time.sleep(0.0)
+            print("Logic Process")
             perception_results, start_time_command = inP.recv()
             
             end_time_command = time.time()
@@ -95,7 +91,7 @@ class LogicProcess(WorkerProcess):
             This is the place where we will decide for the command
             """
             current_angle = perception_results[0]*1.0
-            speed = 0.2
+            speed = 0.0
             #current_angle/= 2
             #current_angle = int(current_angle)
             print("Speed: ", speed, "  Angle: ", current_angle)
@@ -104,10 +100,12 @@ class LogicProcess(WorkerProcess):
             
             try:
                 for outP in self.outPs:
+                    start = time.time()
                     if(self.count == 0):
                         outP.send(commandP)
                         self.count += 1
                     outP.send(command)
+                    print("Duration of the command to be send: ", time.time() - start)
 
             except Exception as e:
                 print(e)

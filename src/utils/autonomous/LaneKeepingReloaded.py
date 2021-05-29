@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import time
 
 from itertools import compress
 
@@ -13,12 +14,13 @@ class LaneKeepingReloaded:
     lane_width_px = 478
 
     def __init__(self, width, height):
-        wT, hT, wB,hB = 70,350,0,443
         self.width = width
         self.height = height
+        wT, hT, wB,hB = 0.1*self.width, 0.5*self.height, 0, 0.8*self.height
         self.src_points = np.float32([[wT, hT],[width - wT, hT], [wB, hB], [width - wB, hB]])
         self.warp_matrix = None
         self.inv_warp_matrix = None
+        self.angle = 0.0
 
     def threshold(self, frame):
         
@@ -112,7 +114,7 @@ class LaneKeepingReloaded:
         out = np.dstack((frame, frame, frame)) * 255
 
         #Number of sliding windows
-        windows_number = 12
+        windows_number = 2
         
         #Width of the windows +/- margin
         margin = 100
@@ -152,8 +154,8 @@ class LaneKeepingReloaded:
             win_xleft_high = leftx_current + margin
            
             # Draw windows for visualisation
-            cv2.rectangle(out, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),\
-                        (0, 0, 255), 2)
+#             cv2.rectangle(out, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),\
+#                         (0, 0, 255), 2)
 
             good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
                             & (nonzerox >= win_xleft_low) & (nonzerox <= win_xleft_high)).nonzero()[0]
@@ -164,9 +166,8 @@ class LaneKeepingReloaded:
             win_xright_high = rightx_current + margin
 
 
-            cv2.rectangle(out, (win_xright_low, win_y_low), (win_xright_high, win_y_high),\
-                        (0, 255, 0), 2)
-
+#             cv2.rectangle(out, (win_xright_low, win_y_low), (win_xright_high, win_y_high),\
+#                         (0, 255, 0), 2)
 
             # Identify the nonzero pixels in x and y within the window
             good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
@@ -216,8 +217,8 @@ class LaneKeepingReloaded:
             #ret = False
         '''
         # Color the detected pixels for each lane line
-        out[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-        out[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [255, 10, 255]
+#         out[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+#         out[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [255, 10, 255]
 
         #cv2.imshow("Windows", out)
         return np.array([left_fit, right_fit])
@@ -354,28 +355,42 @@ class LaneKeepingReloaded:
 
     def lane_keeping_pipeline(self, frame):
 
+        start = time.time()
         warped = self.warp_image(frame)
+        print("Warp: ", time.time() - start)
+        start = time.time()
         gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-        thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-                cv2.THRESH_BINARY,(2*40+1),-30)#self.threshold(warped)
+        print("CVTColor: ", time.time() - start)
+        start = time.time()
+#         thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+#                 cv2.THRESH_BINARY,(39),-44)#self.threshold(warped)
+#         ret, thresh = cv2.threshold(gray,180,255,cv2.THRESH_BINARY)
+        print("Threshold: ", time.time() - start)
         both_lanes = False
-        poly_image = thresh
-        left, right = self.polyfit_sliding_window(thresh)
+        poly_image = gray
+        start = time.time()
+        left, right = self.polyfit_sliding_window(gray)
+        print("Polyfit: ", time.time() - start)
 
         if left is not None and right is not None:
             #print("BOTH LANES")
-
+            start = time.time()
             left_x, left_y, right_x, right_y = self.get_poly_points(left, right)
+            print("Poly points: ", time.time() - start)
             cache = [left,right]
             
+            start = time.time()
             poly_image = self.plot_points(left_x, left_y,right_x, right_y, warped)
+            print("Plot points: ", time.time() - start)
             #cv2.imshow("Poly", poly_image)
             
+            start = time.time()
             error, setpoint, circle_im = self.get_error(poly_image)
+            print("GetError: ", time.time() - start)
             
             nose2wheel = 320
 
-            angle = 90 - math.degrees(math.atan2(nose2wheel, error))
+            self.angle = 90 - math.degrees(math.atan2(nose2wheel, error))
             both_lanes = True
             #print("Coords", nose2wheel, error)
             #print("Angle: ", angle)
@@ -391,7 +406,7 @@ class LaneKeepingReloaded:
 
             #tan = float(dy) / float(dx) 
 
-            angle =  abs( 90 - math.degrees(math.atan2(dy, dx)) )
+            self.angle =  abs( 90 - math.degrees(math.atan2(dy, dx)) )
             
             #angle = 20
         
@@ -406,10 +421,11 @@ class LaneKeepingReloaded:
 
             #tan = float(dy) / float(dx) 
 
-            angle = - abs( 90 - math.degrees(math.atan2(dy, dx)) )
+            self.angle = - abs( 90 - math.degrees(math.atan2(dy, dx)) )
 
             #print("SINGLE LINE ANGLE: " , angle)
         else:
-            angle = 0
+            self.angle = 0.0
+            print("Problem with else")
     
-        return angle, both_lanes, poly_image
+        return self.angle, both_lanes, gray

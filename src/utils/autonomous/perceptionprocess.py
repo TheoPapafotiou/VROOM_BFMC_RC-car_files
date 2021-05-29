@@ -44,7 +44,6 @@ from multiprocessing import Process,Event
 
 from src.utils.templates.workerprocess         import WorkerProcess
 from src.utils.autonomous.ped_detection        import PedestrianDetection
-#from src.utils.autonomous.sign_detection       import SignDetection
 from src.utils.autonomous.shapes_detection     import ShapesDetection
 from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
@@ -76,11 +75,10 @@ class PerceptionProcess(WorkerProcess):
         self.imgWidth = 640
         self.img_sign = np.zeros((640, 480))
         self.countFrames = 0
-        self.countFours = 0
         self.speed = 0.2
         self.intersection_navigation = False
         self.found_intersection = False
-        self.curr_steering_angle = 90
+        self.curr_steering_angle = 0
         #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
 
@@ -111,7 +109,9 @@ class PerceptionProcess(WorkerProcess):
         
         while True:
             try:
+                #print("\nPerception Process")
                 start = time.time()
+                self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
                 print("Time for taking the perception image: ", time.time() - start)
                 
@@ -123,27 +123,36 @@ class PerceptionProcess(WorkerProcess):
                 masked_img = mask.apply_to_img(processed_img)
                 
                 # ----------------------detect sign in image -----------------------
-                #if self.countFrames%20 == 1:
-                #   print("Frame sent")
-                #    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                #    self.outPs[2].send([[stamps], img_bgr])
-                    #label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
+                if self.countFrames%20 == 1:
+                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    self.outPs[2].send([[stamps], img_bgr])
                 
-                #if self.countFrames%20 == 0:
-                #   stamps, self.img_sign = self.inPs[1].recv()
+                if self.countFrames%20 == 0:
+                   stamps, self.img_sign = self.inPs[1].recv()
                 
                 start = time.time()
+                self.speed = 0.2
+                
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                
+                #self.curr_steering_angle *= 2
+                if self.curr_steering_angle >= 25:
+                    self.curr_steering_angle = 24
+                if self.curr_steering_angle <= -25:
+                    self.curr_steering_angle = -24
+                    
+                
                 print("Lane Keeping duration: ", time.time() - start)
-                    #self.curr_steering_angle /= 2
                 
                 
                 # ----------------------- send results (image, perception) -------------------
-                perception_results = [self.curr_steering_angle]
+                perception_results = [self.curr_steering_angle, self.speed]
                 self.outPs[0].send([[stamps], lane_frame])
                 start_time_command = time.time()
+                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])
                 
-                
+                print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
+                raise Exception("Lane keeping fail")
                 pass

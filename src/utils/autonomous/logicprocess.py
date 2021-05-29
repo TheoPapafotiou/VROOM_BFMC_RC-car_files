@@ -54,6 +54,7 @@ class LogicProcess(WorkerProcess):
         self.port      =  12244
         self.serverIp  = '0.0.0.0'
         self.count = 0
+        self.countFrames = 0
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -80,32 +81,47 @@ class LogicProcess(WorkerProcess):
     # ===================================== SEND COMMAND =================================
     def _send_command_thread(self, inP):
         """Transmite the command"""
-                
+        start_thread = time.time()
         while self.reset.value == 0:
-            print("Logic Process")
+            #print("\nLogic Process")
+            self.countFrames += 1
+            if self.countFrames == 10:
+                self.countFrames = 0
+            #print("\n\nFrames are: ", self.countFrames, "\n\n")
+            start = time.time()
             perception_results, start_time_command = inP.recv()
             
             end_time_command = time.time()
-            print(end_time_command - start_time_command)
+            #print("Duration for taking the perception results: ", end_time_command - start_time_command)
             """
             This is the place where we will decide for the command
             """
             current_angle = perception_results[0]*1.0
-            speed = 0.0
-            #current_angle/= 2
-            #current_angle = int(current_angle)
+            current_angle = round(current_angle, 1)
+            speed = perception_results[1]*1.0
+            
             print("Speed: ", speed, "  Angle: ", current_angle)
+            
             commandP = {'action': 'PIDA','activate': False}
-            command = {'action': 'MCTL', 'speed': speed, 'steerAngle': round(current_angle, 1)}
+            commandS = {'action': 'SFBR', 'activate': False}
+            commandE = {'action': 'ENPB', 'activate': True}
+            commandD = {'action': 'DSPB', 'activate': True}
+            commandM = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
+            commandB = {'action': 'BRAK', 'steerAngle': current_angle}
             
             try:
                 for outP in self.outPs:
                     start = time.time()
                     if(self.count == 0):
                         outP.send(commandP)
+                        outP.send(commandS)
                         self.count += 1
-                    outP.send(command)
-                    print("Duration of the command to be send: ", time.time() - start)
+                    if self.countFrames >= 3 and self.countFrames < 10:
+                        outP.send(commandB)
+                    else:
+                        outP.send(commandM)
+                    #print("Duration of the command to be send: ", time.time() - start)
+                    print("\nTotal duration of logic: ", time.time() - start, "\n")
 
             except Exception as e:
                 print(e)

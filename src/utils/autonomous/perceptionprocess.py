@@ -165,12 +165,6 @@ class PerceptionProcess(WorkerProcess):
                 #### LANE KEEPING ####
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
-                #self.curr_steering_angle *= 2
-                if self.curr_steering_angle >= 25:
-                    self.curr_steering_angle = 24
-                if self.curr_steering_angle <= -25:
-                    self.curr_steering_angle = -24
-                
                 print("Lane Keeping duration: ", time.time() - start)
 
                 #### PARKING ####
@@ -197,12 +191,17 @@ class PerceptionProcess(WorkerProcess):
                     else:
                         self.speed, self.curr_steering_angle, self.parking_initiated = park.parking_horizontal(self.yaw_init, yaw, img, self.parking_initiated)
                 
+
+                #### NORMALIZE ANGLE ####
+                if self.curr_steering_angle >= 25:
+                    self.curr_steering_angle = 24
+                if self.curr_steering_angle <= -25:
+                    self.curr_steering_angle = -24
                 
-                # ----------------------- send results (image, perception) -------------------
+                #### SEND RESULTS (image, perception) ####
                 perception_results = [self.curr_steering_angle, self.speed]
                 self.outPs[0].send([[stamps], lane_frame])
                 start_time_command = time.time()
-                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])
                 
                 print("\nTotal duration of perception: ", time.time() - start, "\n")

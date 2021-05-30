@@ -23,10 +23,10 @@ class Parking:
         self.kappa = 55
 
         self.theta_ver = -20
-        self.phi_ver = 30
+        self.phi_ver = 24
         self.omega_ver = 44
         self.kappa_ver = 44
-        self.ro_ver = 40
+        self.ro_ver = 24
         
         self.margin = 3
         self.speed = 0.0

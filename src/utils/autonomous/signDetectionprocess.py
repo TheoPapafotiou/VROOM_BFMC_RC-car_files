@@ -66,19 +66,16 @@ class SignDetectionProcess(WorkerProcess):
     # ===================================== DETECT SIGN =================================
     def _haha(self):
         print("Starting Sign-detection thread");
-        label = "Something"
-        confidence = 0.0
         
         while True:
             try:
-                print("Hmmm, interesting")
                 stamps, img = self.inPs[0].recv()
                 print("Frame received")
                 label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
                 print("I'm done")
                 try:
                     for outP in self.outPs:
-                        outP.send([[stamps], img])
+                        outP.send([[stamps], [label]])
                         print("Frame with sign sent")
                     
                 except Exception as e:

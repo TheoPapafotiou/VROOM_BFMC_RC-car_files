@@ -100,7 +100,7 @@ class LogicProcess(WorkerProcess):
             current_angle = round(current_angle, 1)
             speed = perception_results[1]*1.0
             
-            print("Speed: ", speed, "  Angle: ", current_angle)
+            #print("Speed: ", speed, "  Angle: ", current_angle)
             
             commandP = {'action': 'PIDA','activate': False}
             commandS = {'action': 'SFBR', 'activate': False}
@@ -117,11 +117,11 @@ class LogicProcess(WorkerProcess):
                         outP.send(commandS)
                         self.count += 1
                     if self.countFrames >= 3 and self.countFrames < 10:
-                        outP.send(commandB)
+                        outP.send(commandM)
                     else:
                         outP.send(commandM)
                     #print("Duration of the command to be send: ", time.time() - start)
-                    print("\nTotal duration of logic: ", time.time() - start, "\n")
+                    #print("\nTotal duration of logic: ", time.time() - start, "\n")
 
             except Exception as e:
                 print(e)

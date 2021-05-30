@@ -58,7 +58,7 @@ class SignDetection:
     def detectSign(self, img, height, width):
         blob = cv2.dnn.blobFromImage(img, 1/255,(416,416),(0,0,0),swapRB = True,crop= False)
         cfs = 0
-        print("I'm working on the class")
+        #print("I'm working on the class")
         label = "Something"
         confidence = 0.0
         label, confidence = self.detectSignProcedure(

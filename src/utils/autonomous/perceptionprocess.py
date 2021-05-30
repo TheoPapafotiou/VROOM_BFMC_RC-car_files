@@ -50,7 +50,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-from src.utils.autonomous.Parking              import Parking as park
+from src.utils.autonomous.Parking              import Parking
 from src.hardware.BNOHandler.BNOhandler        import BNOhandler
 
 
@@ -70,6 +70,7 @@ class PerceptionProcess(WorkerProcess):
         super(PerceptionProcess,self).__init__(inPs, outPs)
         #self.signDet = SignDetection()
         self.pedDet = PedestrianDetection()
+        self.park = Parking()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
         self.imgSize    = (480,640,3)
@@ -81,6 +82,8 @@ class PerceptionProcess(WorkerProcess):
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
+        
+        self.sign_detected = "None"
 
         ### Parking params ###
         self.parking_ready = False
@@ -92,6 +95,10 @@ class PerceptionProcess(WorkerProcess):
         self.count_steps = 0
         self.max_count_steps = 0
         self.yaw_init = 0
+        
+        global IMU
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        IMU = BNOhandler()
 
         #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
@@ -110,7 +117,7 @@ class PerceptionProcess(WorkerProcess):
         self.threads.append(readTh)
     
     # ==================================== BNO HANDLER EXIT ==============================
-    def exit_handler(signum, frame):
+    def exit_handler(self, signum, frame):
         IMU.stop()
         IMU.join()
         sys.exit(0)
@@ -125,12 +132,9 @@ class PerceptionProcess(WorkerProcess):
             output pipes (not used at the moment)
         """
         
-        global IMU
-        signal.signal(signal.SIGTERM, exit_handler)
-        IMU = BNOhandler()
-        
+
+        IMU.start()
         while True:
-            IMU.start()
             try:
                 #print("\nPerception Process")
                 start = time.time()
@@ -138,11 +142,10 @@ class PerceptionProcess(WorkerProcess):
                 self.count_steps += 1
 
                 yaw = IMU.yaw
-                pitch = IMU.pitch
-                roll = IMU.roll
+                print("Yaw is: ", yaw)
 
                 stamps, img = self.inPs[0].recv()
-                print("Time for taking the perception image: ", time.time() - start)
+                #print("Time for taking the perception image: ", time.time() - start)
                 
                 # ----------------------- read image -----------------------
                 img_dims = img[:,:,0].shape
@@ -152,12 +155,15 @@ class PerceptionProcess(WorkerProcess):
                 masked_img = mask.apply_to_img(processed_img)
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
-                
-                if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()
+                start = time.time()
+    #                 if self.countFrames%20 == 1:
+    #                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    #                     self.outPs[2].send([[stamps], img_bgr])
+    #                 
+    #                 elif self.countFrames%20 == 0:
+    #                     stamps, self.img_sign, self.sign_detected = self.inPs[1].recv()
+                   #print("Sign detected: ", self.sign_detected)
+                #print("Sign detection duration: ", time.time() - start)
                 
                 start = time.time()
                 self.speed = 0.2
@@ -165,10 +171,14 @@ class PerceptionProcess(WorkerProcess):
                 #### LANE KEEPING ####
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
-                print("Lane Keeping duration: ", time.time() - start)
-
+                #print("Lane Keeping duration: ", time.time() - start)
+                if self.countFrames == 2:
+                    self.sign_detected = 'ParkingSpot'
+                if self.countFrames == 3:
+                    self.sign_detected = 'None'
+                    
                 #### PARKING ####
-                if sign_detected == 'ParkingSpot' and self.parking_ready is False and self.parking_initiated is False:
+                if self.sign_detected == 'ParkingSpot' and self.parking_ready is False and self.parking_initiated is False:
                     
                     # if x < 3 and y < 2.3:
                     #     self.parking_type = "vertical"
@@ -176,35 +186,35 @@ class PerceptionProcess(WorkerProcess):
                     #     self.parking_type = "horizontal"
                     self.parking_type = "vertical"
 
-                    self.max_count_steps = 20#distance*self.norm_factor
+                    self.max_count_steps = 3#11#distance*self.norm_factor
                     self.count_steps = 0
                     self.parking_ready = True
 
                 if self.count_steps == self.max_count_steps and self.parking_ready is True:
-                    self.yaw_init = yaw
+                    self.yaw_init = 0.0
+                    print("Yaw init is: ", self.yaw_init)
                     self.parking_initiated = True
                     self.parking_ready = False
 
                 if self.parking_initiated is True:
                     if parking_type == 'vertical':
-                        self.speed, self.curr_steering_angle, self.parking_initiated = park.parking_vertical(self.yaw_init, yaw, img, self.parking_initiated)
+                        self.speed, self.curr_steering_angle, self.parking_initiated = self.park.parking_vertical(self.yaw_init, yaw, self.parking_initiated)
                     else:
                         self.speed, self.curr_steering_angle, self.parking_initiated = park.parking_horizontal(self.yaw_init, yaw, img, self.parking_initiated)
-                
+                    print(self.speed, self.curr_steering_angle)
 
                 #### NORMALIZE ANGLE ####
                 if self.curr_steering_angle >= 25:
-                    self.curr_steering_angle = 24
+                    self.curr_steering_angle = 23
                 if self.curr_steering_angle <= -25:
-                    self.curr_steering_angle = -24
+                    self.curr_steering_angle = -23
                 
                 #### SEND RESULTS (image, perception) ####
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], lane_frame])
+                self.outPs[0].send([[stamps], img])
                 start_time_command = time.time()
                 self.outPs[1].send([perception_results, start_time_command])
                 
-                print("\nTotal duration of perception: ", time.time() - start, "\n")
+                #print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
-                raise Exception("Lane keeping fail")
                 pass

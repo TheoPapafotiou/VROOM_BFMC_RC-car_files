@@ -35,6 +35,7 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import signal
 
 import cv2
 from threading import Thread
@@ -50,7 +51,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-
+from src.hardware.BNOHandler.BNOhandler        import BNOhandler
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -95,6 +96,12 @@ class PerceptionProcess(WorkerProcess):
         readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
     
+    # ==================================== BNO HANDLER EXIT ==============================
+    def exit_handler(signum, frame):
+        IMU.stop()
+        IMU.join()
+        sys.exit(0)
+    
     # ===================================== READ STREAM ==================================
     def _read_stream(self):
         """Read the image from input stream, decode it and show it.
@@ -106,8 +113,12 @@ class PerceptionProcess(WorkerProcess):
         """
         
         print('Start showing the photo')
-        
+        global IMU
+        #signal.signal(signal.SIGTERM, self.exit_handler)
+        IMU = BNOhandler()
+        IMU.start()
         while True:
+            
             try:
                 #print("\nPerception Process")
                 start = time.time()
@@ -123,12 +134,14 @@ class PerceptionProcess(WorkerProcess):
                 masked_img = mask.apply_to_img(processed_img)
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
-                
-                if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()
+#                 if self.countFrames%20 == 1:
+#                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+#                     self.outPs[2].send([[stamps], img_bgr])
+#                 
+#                 if self.countFrames%20 == 0:
+#                    stamps, self.img_sign = self.inPs[1].recv()
+                yaw = IMU.yaw
+                print("Yaw is: ", yaw)
                 
                 start = time.time()
                 self.speed = 0.2

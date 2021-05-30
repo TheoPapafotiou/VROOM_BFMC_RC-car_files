@@ -357,36 +357,36 @@ class LaneKeepingReloaded:
 
         start = time.time()
         warped = self.warp_image(frame)
-        print("Warp: ", time.time() - start)
+        #print("Warp: ", time.time() - start)
         start = time.time()
         gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-        print("CVTColor: ", time.time() - start)
+        #print("CVTColor: ", time.time() - start)
         start = time.time()
 #         thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
 #                 cv2.THRESH_BINARY,(39),-44)#self.threshold(warped)
 #         ret, thresh = cv2.threshold(gray,180,255,cv2.THRESH_BINARY)
-        print("Threshold: ", time.time() - start)
+        #print("Threshold: ", time.time() - start)
         both_lanes = False
         poly_image = gray
         start = time.time()
         left, right = self.polyfit_sliding_window(gray)
-        print("Polyfit: ", time.time() - start)
+        #print("Polyfit: ", time.time() - start)
 
         if left is not None and right is not None:
             #print("BOTH LANES")
             start = time.time()
             left_x, left_y, right_x, right_y = self.get_poly_points(left, right)
-            print("Poly points: ", time.time() - start)
+            #print("Poly points: ", time.time() - start)
             cache = [left,right]
             
             start = time.time()
             poly_image = self.plot_points(left_x, left_y,right_x, right_y, warped)
-            print("Plot points: ", time.time() - start)
+            #print("Plot points: ", time.time() - start)
             #cv2.imshow("Poly", poly_image)
             
             start = time.time()
             error, setpoint, circle_im = self.get_error(poly_image)
-            print("GetError: ", time.time() - start)
+            #print("GetError: ", time.time() - start)
             
             nose2wheel = 320
 

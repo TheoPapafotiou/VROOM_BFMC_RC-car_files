@@ -96,9 +96,11 @@ class LogicProcess(WorkerProcess):
             """
             This is the place where we will decide for the command
             """
-            current_angle = perception_results[0]*1.0
-            current_angle = round(current_angle, 1)
-            speed = perception_results[1]*1.0
+            #current_angle = perception_results[0]*1.0
+            #current_angle = round(current_angle, 1)
+            current_angle = 0.0
+            speed = 0.0
+            #speed = perception_results[1]*1.0
             
             print("Speed: ", speed, "  Angle: ", current_angle)
             
@@ -117,7 +119,7 @@ class LogicProcess(WorkerProcess):
                         outP.send(commandS)
                         self.count += 1
                     if self.countFrames >= 3 and self.countFrames < 10:
-                        outP.send(commandB)
+                        outP.send(commandM)
                     else:
                         outP.send(commandM)
                     #print("Duration of the command to be send: ", time.time() - start)

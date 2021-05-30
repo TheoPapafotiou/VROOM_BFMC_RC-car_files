@@ -83,11 +83,13 @@ if enableStream:
         comR, comS = Pipe(duplex = False)
         signInitR, signInitS = Pipe(duplex = False)
         signR, signS = Pipe(duplex = False)
+        vehInitR, vehInitS = Pipe(duplex = False)
+        vehR, vehS = Pipe(duplex = False)
         
         camProcess = CameraProcess([],[camSPh])
         allProcesses.append(camProcess)
         
-        percProc = PerceptionProcess([camRPh, signR], [camStSP, perc2logS, signInitS])
+        percProc = PerceptionProcess([camRPh, signR, vehR], [camStSP, perc2logS, signInitS, vehInitS])
         allProcesses.append(percProc)
         
         logProc = LogicProcess([perc2logR], [comS])
@@ -95,6 +97,9 @@ if enableStream:
         
         #signProc = SignDetectionProcess([signInitR], [signS])
         #allProcesses.append(signProc)
+
+        vehProc = VehicleDetectionProcess([vehInitR], [vehS])
+        allProcesses.append(vehProc)
         
         shProc = SerialHandler([comR], [])
         allProcesses.append(shProc)

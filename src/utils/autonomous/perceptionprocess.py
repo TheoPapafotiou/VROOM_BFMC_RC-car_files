@@ -50,7 +50,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-
+from src.utils.autonomous.vehicleHandler       import VehicleHandler
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -70,10 +70,11 @@ class PerceptionProcess(WorkerProcess):
         self.pedDet = PedestrianDetection()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
-        self.imgSize    = (480,640,3)
+        self.imgSize = (480,640,3)
         self.imgHeight = 480
         self.imgWidth = 640
         self.img_sign = np.zeros((640, 480))
+        self.img_vehicle = np.zeros((640, 480))
         self.countFrames = 0
         self.speed = 0.2
         self.intersection_navigation = False
@@ -130,11 +131,17 @@ class PerceptionProcess(WorkerProcess):
                     self.outPs[2].send([[stamps], img_bgr])
                 
                 if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()
-                
+                   stamps, self.img_sign = self.inPs[1].recv()  
+
+
+                # ----------------------detect vehicle in image -----------------------
+                self.outPs[3].send([[stamps], img_vehicle])
+                stamps, self.img_vehicle = self.inPs[2].recv()
+
+                # ----------------------lane keeping -----------------------
                 start = time.time()
                 self.speed = 0.2
-                
+
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
                 #self.curr_steering_angle *= 2
@@ -146,10 +153,9 @@ class PerceptionProcess(WorkerProcess):
                 
                 print("Lane Keeping duration: ", time.time() - start)
                 
-                
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], lane_frame])
+                self.outPs[0].send([[stamps], img_vehicle])
                 start_time_command = time.time()
                 #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])

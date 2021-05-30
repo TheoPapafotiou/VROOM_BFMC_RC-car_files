@@ -18,7 +18,7 @@ class VehicleHandler:
 
 	def detect_vehicle(self, image):
 		gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-		cars = self.ccascade.detectMultiScale(gray, 1.1, 5)
+		cars = self.ccascade.detectMultiScale(gray, 1.5, 14)
 
 		for (x,y,w,h) in cars:
 			detected_area =  (x+w)*(y+h)
@@ -27,7 +27,7 @@ class VehicleHandler:
 			self.bbox = (x,y,w,h)
 
 		cars = np.array([[x, y, x + w, y + h] for (x, y, w, h) in cars])
-		pick = non_max_suppression(cars, probs=None, overlapThresh=0.2)
+		pick = non_max_suppression(cars, probs=None, overlapThresh=0.6)
 
 		for(xA, yA, xB, yB) in pick:
 			#if (xA+xB) * (yA + yB) > 70000:

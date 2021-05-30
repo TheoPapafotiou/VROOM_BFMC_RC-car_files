@@ -82,17 +82,8 @@ class LogicProcess(WorkerProcess):
     # ===================================== SEND COMMAND =================================
     def _send_command_thread(self, inP):
         """Transmite the command"""
-<<<<<<< HEAD
-        
-        #self.reset = False
-        #print("This is the reset2: ", self.reset)
-        
-        if(enPID == True):
-            command = {'action': 'PIDA','activate': True}
-
-=======
         start_thread = time.time()
->>>>>>> 66fe109922e2cbfd385cb7341c564a3e50a1cb13
+
         while self.reset.value == 0:
             #print("\nLogic Process")
             self.countFrames += 1

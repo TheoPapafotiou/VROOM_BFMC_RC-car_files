@@ -50,6 +50,7 @@ from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
 from src.utils.autonomous.perceptionprocess        import PerceptionProcess
 from src.utils.autonomous.signDetectionprocess     import SignDetectionProcess
 from src.utils.autonomous.logicprocess             import LogicProcess
+from src.utils.autonomous.vehicleDetectionProcess  import VehicleDetectionProcess
 
 # =============================== CONFIG =================================================
 enableStream        =  True

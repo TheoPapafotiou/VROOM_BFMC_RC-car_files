@@ -50,7 +50,6 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-from src.utils.autonomous.vehicleHandler       import VehicleHandler
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -66,8 +65,6 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        #self.signDet = SignDetection()
-        self.pedDet = PedestrianDetection()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
         self.imgSize = (480,640,3)
@@ -110,39 +107,45 @@ class PerceptionProcess(WorkerProcess):
         img = None
 
         while True:
-            try:
+            #try:
                 #print("\nPerception Process")
                 start = time.time()
                 self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
+                self.img_vehicle = img
                 print("Time for taking the perception image: ", time.time() - start)
                 
                 # ----------------------- read image -----------------------
                 img_dims = img[:,:,0].shape
-                self.out.write(img)
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
                 processed_img = hf.image_processing(img)
                 masked_img = mask.apply_to_img(processed_img)
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
-                
-                if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()  
+#                 if self.countFrames%20 == 1:
+#                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+#                     self.outPs[2].send([[stamps], img_bgr])
+#                 
+#                 if self.countFrames%20 == 0:
+#                    stamps, self.img_sign = self.inPs[1].recv()  
 
 
                 # ----------------------detect vehicle in image -----------------------
-                self.outPs[3].send([[stamps], img_vehicle])
-                stamps, self.img_vehicle = self.inPs[2].recv()
+                start = time.time()
+                try:
+                    self.outPs[3].send([[stamps], img])
+                    print("Frame sent for vehicle")
+                    stamps, self.img_vehicle = self.inPs[2].recv()
+                    print("Vehicle Detection duration: ", time.time() - start)
+                except:
+                    raise Exception("Something went wroong!")
 
                 # ----------------------lane keeping -----------------------
                 start = time.time()
-                self.speed = 0.2
+                self.speed = 0.0
 
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                #self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
                 #self.curr_steering_angle *= 2
                 if self.curr_steering_angle >= 25:
@@ -155,12 +158,11 @@ class PerceptionProcess(WorkerProcess):
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], img_vehicle])
+                self.outPs[0].send([[stamps], self.img_vehicle])
                 start_time_command = time.time()
-                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])
                 
                 print("\nTotal duration of perception: ", time.time() - start, "\n")
-            except:
-                raise Exception("Lane keeping fail")
-                pass
+#             except:
+#                 raise Exception("Lane keeping fail")
+#                 pass

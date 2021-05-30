@@ -49,7 +49,7 @@ class VehicleDetectionProcess(WorkerProcess):
         """Initialize the vehicleDetection thread to receive the video.
         """
         vehTh = Thread(name = 'VehicleDetectionThread',target = self._haha2)
-        self.threads.append(signTh)
+        self.threads.append(vehTh)
         
     # ===================================== DETECT VEHICLE =================================
     def _haha2(self):
@@ -58,7 +58,6 @@ class VehicleDetectionProcess(WorkerProcess):
         
         while True:
             try:
-                print("Hmmm, interesting2")
                 stamps, img = self.inPs[0].recv()
                 print("Frame received2")
                 detected_vehicle = self.vehDet.detect_vehicle(img)

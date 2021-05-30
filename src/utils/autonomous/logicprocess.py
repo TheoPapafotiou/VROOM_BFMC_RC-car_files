@@ -54,6 +54,8 @@ class LogicProcess(WorkerProcess):
         self.reset = Value("i", 0)
         self.port      =  12244
         self.serverIp  = '0.0.0.0'
+        self.count = 0
+        self.countFrames = 0
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -80,6 +82,7 @@ class LogicProcess(WorkerProcess):
     # ===================================== SEND COMMAND =================================
     def _send_command_thread(self, inP):
         """Transmite the command"""
+<<<<<<< HEAD
         
         #self.reset = False
         #print("This is the reset2: ", self.reset)
@@ -87,23 +90,50 @@ class LogicProcess(WorkerProcess):
         if(enPID == True):
             command = {'action': 'PIDA','activate': True}
 
+=======
+        start_thread = time.time()
+>>>>>>> 66fe109922e2cbfd385cb7341c564a3e50a1cb13
         while self.reset.value == 0:
+            #print("\nLogic Process")
+            self.countFrames += 1
+            if self.countFrames == 10:
+                self.countFrames = 0
+            #print("\n\nFrames are: ", self.countFrames, "\n\n")
+            start = time.time()
+            perception_results, start_time_command = inP.recv()
             
-            time.sleep(0.0)
-            perception_results = inP.recv()
+            end_time_command = time.time()
+            #print("Duration for taking the perception results: ", end_time_command - start_time_command)
             """
             This is the place where we will decide for the command
             """
             current_angle = perception_results[0]*1.0
-            speed = 0.0
-            #current_angle/= 2
-            #current_angle = int(current_angle)
+            current_angle = round(current_angle, 1)
+            speed = perception_results[1]*1.0
+            
             print("Speed: ", speed, "  Angle: ", current_angle)
-            command = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
+            
+            commandP = {'action': 'PIDA','activate': False}
+            commandS = {'action': 'SFBR', 'activate': False}
+            commandE = {'action': 'ENPB', 'activate': True}
+            commandD = {'action': 'DSPB', 'activate': True}
+            commandM = {'action': 'MCTL', 'speed': speed, 'steerAngle': current_angle}
+            commandB = {'action': 'BRAK', 'steerAngle': current_angle}
+            
             try:
                 for outP in self.outPs:
-                    outP.send(command)
-                
+                    start = time.time()
+                    if(self.count == 0):
+                        outP.send(commandP)
+                        outP.send(commandS)
+                        self.count += 1
+                    if self.countFrames >= 3 and self.countFrames < 10:
+                        outP.send(commandB)
+                    else:
+                        outP.send(commandM)
+                    #print("Duration of the command to be send: ", time.time() - start)
+                    print("\nTotal duration of logic: ", time.time() - start, "\n")
+
             except Exception as e:
                 print(e)
         

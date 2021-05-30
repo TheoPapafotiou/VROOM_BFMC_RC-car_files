@@ -93,8 +93,8 @@ if enableStream:
         logProc = LogicProcess([perc2logR], [comS])
         allProcesses.append(logProc)
         
-        signProc = SignDetectionProcess([signInitR], [signS])
-        allProcesses.append(signProc)
+        #signProc = SignDetectionProcess([signInitR], [signS])
+        #allProcesses.append(signProc)
         
         shProc = SerialHandler([comR], [])
         allProcesses.append(shProc)
@@ -131,7 +131,7 @@ try:
 except KeyboardInterrupt:
     print("\nCatching a Keyboard Interruption exception! Shutdown all processes.\n")
     
-    for i in range (0, 5060):
+    for i in range (0, 500):
         allProcesses[2].reset.value = 1
         time.sleep(0.001)
     
@@ -142,7 +142,7 @@ except KeyboardInterrupt:
             print("Process with stop",proc)
             if proc_counter == 3:
                 proc.reset.value = 1
-                time.sleep(5)
+                time.sleep(2)
             proc.stop()
             proc.join()
         else:

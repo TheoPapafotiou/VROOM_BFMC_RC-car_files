@@ -117,8 +117,8 @@ class LogicProcess(WorkerProcess):
                         outP.send(commandP)
                         outP.send(commandS)
                         self.count += 1
-                    if self.countFrames >= 3 and self.countFrames < 10:
-                        outP.send(commandB)
+                    if self.countFrames >= 8 and self.countFrames < 10:
+                        outP.send(commandM)
                     else:
                         outP.send(commandM)
                     #print("Duration of the command to be send: ", time.time() - start)

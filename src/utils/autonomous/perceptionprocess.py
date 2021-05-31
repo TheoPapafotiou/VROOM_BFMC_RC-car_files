@@ -72,11 +72,20 @@ class PerceptionProcess(WorkerProcess):
         self.imgHeight = 480
         self.imgWidth = 640
         self.img_sign = np.zeros((640, 480))
+        self.label = None
         self.countFrames = 0
-        self.speed = 0.2
+        self.speed = 0.0
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
+        
+        self.start_speed = 0.4
+        self.desired_speed = 0.1
+        self.Nsteps = 3
+        self.decrement = (self.start_speed - self.desired_speed)/self.Nsteps
+        self.decrementInTime = 0.3 #sec
+        self.fps = 10 
+        self.decrementInFrames = self.decrementInTime * self.fps
         #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
 
@@ -113,6 +122,9 @@ class PerceptionProcess(WorkerProcess):
                 stamps, img = self.inPs[0].recv()
                 print("Time for taking the perception image: ", time.time() - start)
                 
+                if self.label is None:
+                    self.img_sign = img
+                
                 # ----------------------- read image -----------------------
                 img_dims = img[:,:,0].shape
                 mask = Mask(4, img_dims)
@@ -121,19 +133,34 @@ class PerceptionProcess(WorkerProcess):
                 masked_img = mask.apply_to_img(processed_img)
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
+                start = time.time()
+                if self.countFrames%10 == 1:
                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                     self.outPs[2].send([[stamps], img_bgr])
                 
-                if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()
+                elif self.countFrames%10 == 0:
+                   stamps, self.img_sign, self.label = self.inPs[1].recv()
+                   print("\n===========\n", self.label, "\n===========\n")
+                print("Sign Detection Duration: ", time.time() - start)
                 
                 start = time.time()
-                self.speed = 0.2
                 
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
-                #self.curr_steering_angle *= 2
+#                 if self.countFrames in range(0, int(self.decrementInFrames)):
+#                     self.speed = self.start_speed
+#                     print("Max speed")
+#                 elif self.countFrames % int(self.decrementInFrames) == 0 and self.speed is not self.desired_speed:
+#                     self.speed -= self.decrement
+#                     print("Middle speed: ", self.speed)
+#                 elif self.countFrames > self.decrementInFrames * self.Nsteps:
+#                     self.speed = self.desired_speed
+#                     print("Min speed")
+                
+                if self.label is not None:
+                    self.speed = 0.0
+                
+                #self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                
                 if self.curr_steering_angle >= 25:
                     self.curr_steering_angle = 24
                 if self.curr_steering_angle <= -25:
@@ -145,7 +172,7 @@ class PerceptionProcess(WorkerProcess):
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], lane_frame])
+                self.outPs[0].send([[stamps], self.img_sign])
                 start_time_command = time.time()
                 self.outPs[1].send([perception_results, start_time_command])
                 

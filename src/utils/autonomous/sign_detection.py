@@ -53,7 +53,7 @@ class SignDetection:
                 
                 return label, confidence
         
-        return "Something", 0.0
+        return None, 0.0
 
     def detectSign(self, img, height, width):
         blob = cv2.dnn.blobFromImage(img, 1/255,(416,416),(0,0,0),swapRB = True,crop= False)

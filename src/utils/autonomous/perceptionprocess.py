@@ -121,6 +121,7 @@ class PerceptionProcess(WorkerProcess):
         print('Start showing the photo')
         
         IMU.start()
+        time.sleep(1)
         while True:
             try:
                 start = time.time()
@@ -157,13 +158,14 @@ class PerceptionProcess(WorkerProcess):
                     self.found_intersection = False
 
                 if(self.intersection_navigation is True):
-                    direction = "left"                      # This value will be defined by the Path Planning object.
+                    direction = "right"                      # This value will be defined by the Path Planning object.
                     current_yaw = yaw
                     self.curr_steering_angle, self.speed, self.intersection_navigation = self.navigate_intersection.intersection_navigation(self.starting_yaw, current_yaw, direction)
-
-                self.speed = 0.0
-                self.curr_steering_angle = 0.0
+                else:
+                    self.speed = 0.0
+                    self.curr_steering_angle = 0.0
                 
+                print("Navigation intersection = ", self.intersection_navigation)
                 #### NORMALIZE ANGLE ####
                 if self.curr_steering_angle >= 25:
                     self.curr_steering_angle = 24

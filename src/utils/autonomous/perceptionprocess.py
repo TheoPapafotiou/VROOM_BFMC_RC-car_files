@@ -42,14 +42,17 @@ from threading import Thread
 import multiprocessing
 from multiprocessing import Process,Event
 
-from src.utils.templates.workerprocess         import WorkerProcess
-from src.utils.autonomous.ped_detection        import PedestrianDetection
-from src.utils.autonomous.shapes_detection     import ShapesDetection
-from src.utils.autonomous.Line                 import Line
-from src.utils.autonomous.Mask                 import Mask
-from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
-from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
-from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
+from src.utils.templates.workerprocess                  import WorkerProcess
+from src.utils.autonomous.ped_detection                 import PedestrianDetection
+from src.utils.autonomous.shapes_detection              import ShapesDetection
+from src.utils.autonomous.Line                          import Line
+from src.utils.autonomous.Mask                          import Mask
+from src.utils.autonomous.HelperFunctions               import HelperFunctions as hf
+from src.utils.autonomous.LaneKeeping                   import LaneKeeping as lk
+from src.utils.autonomous.LaneKeepingReloaded           import LaneKeepingReloaded
+from src.utils.autonomous.IntersectionNavigation        import IntersectionNavigation as iv
+from src.hardware.BNOHandler.BNOhandler                 import BNOhandler
+
 
 
 class PerceptionProcess(WorkerProcess):
@@ -66,21 +69,24 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        #self.signDet = SignDetection()
-        self.pedDet = PedestrianDetection()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
         self.imgSize    = (480,640,3)
         self.imgHeight = 480
         self.imgWidth = 640
-        self.img_sign = np.zeros((640, 480))
         self.countFrames = 0
         self.speed = 0.2
+        self.curr_steering_angle = 0
+
+        ### Intersection Navigation Params ###
         self.intersection_navigation = False
         self.found_intersection = False
-        self.curr_steering_angle = 0
-        #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
+        self.navigate_intersection = IntersectionNavigation()        
+        self.starting_yaw = 0
+        
+        global IMU
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        IMU = BNOhandler()
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -95,6 +101,12 @@ class PerceptionProcess(WorkerProcess):
         readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
     
+    # ==================================== BNO HANDLER EXIT ==============================
+    def exit_handler(self, signum, frame):
+        IMU.stop()
+        IMU.join()
+        sys.exit(0)
+
     # ===================================== READ STREAM ==================================
     def _read_stream(self):
         """Read the image from input stream, decode it and show it.
@@ -107,52 +119,54 @@ class PerceptionProcess(WorkerProcess):
         
         print('Start showing the photo')
         
+        IMU.start()
         while True:
             try:
-                #print("\nPerception Process")
                 start = time.time()
                 self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
                 print("Time for taking the perception image: ", time.time() - start)
                 
-                # ----------------------- read image -----------------------
+                # ----------------------- read image ----------------------- #
                 img_dims = img[:,:,0].shape
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
                 processed_img = hf.image_processing(img)
                 masked_img = mask.apply_to_img(processed_img)
                 
-                # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
+                #### SIGN DETECTION ####
+                # if self.countFrames%20 == 1:
+                #     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                #     self.outPs[2].send([[stamps], img_bgr])
                 
-                if self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()
+                # if self.countFrames%20 == 0:
+                #    stamps, self.img_sign = self.inPs[1].recv()
                 
-                start = time.time()
-                self.speed = 0.2
-                
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
-                
-                #self.curr_steering_angle *= 2
+                #### INTERSECTION NAVIGATION ####
+
+                if(self.found_intersectiond is True):
+                    self.starting_yaw = IMU.yaw
+                    self.intersection_navigation = True
+                    self.found_intersection = False
+
+                if(self.intersection_navigation is True):
+                    direction = "right"                      # This value will be defined by the Path Planning object.
+                    self.current_yaw = IMU.yaw                
+                self.current_steering_angle, self.speed, self.intersection_navigation = self.navigate_intersection.intersection_navigation(self.starting_yaw, self.current_yaw, direction)
+
+                #### NORMALIZE ANGLE ####
                 if self.curr_steering_angle >= 25:
                     self.curr_steering_angle = 24
                 if self.curr_steering_angle <= -25:
                     self.curr_steering_angle = -24
-                    
-                
-                print("Lane Keeping duration: ", time.time() - start)
-                
-                
-                # ----------------------- send results (image, perception) -------------------
+                                    
+                #### SEND RESULTS (image, perception) ####                
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], lane_frame])
+                self.outPs[0].send([[stamps], img])
                 start_time_command = time.time()
-                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])
                 
                 print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
-                raise Exception("Lane keeping fail")
+                raise Exception("Intersection Navigation fail")
                 pass

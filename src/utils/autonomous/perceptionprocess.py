@@ -35,6 +35,7 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import signal
 
 import cv2
 from threading import Thread
@@ -50,7 +51,7 @@ from src.utils.autonomous.Mask                          import Mask
 from src.utils.autonomous.HelperFunctions               import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping                   import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded           import LaneKeepingReloaded
-from src.utils.autonomous.IntersectionNavigation        import IntersectionNavigation as iv
+from src.utils.autonomous.IntersectionNavigation        import IntersectionNavigation
 from src.hardware.BNOHandler.BNOhandler                 import BNOhandler
 
 
@@ -80,7 +81,7 @@ class PerceptionProcess(WorkerProcess):
 
         ### Intersection Navigation Params ###
         self.intersection_navigation = False
-        self.found_intersection = False
+        self.found_intersection = True
         self.navigate_intersection = IntersectionNavigation()        
         self.starting_yaw = 0
         
@@ -124,6 +125,11 @@ class PerceptionProcess(WorkerProcess):
             try:
                 start = time.time()
                 self.countFrames += 1
+                
+                roll = IMU.roll
+                yaw = IMU.yaw 
+                print("Yaw is: ", yaw)
+                
                 stamps, img = self.inPs[0].recv()
                 print("Time for taking the perception image: ", time.time() - start)
                 
@@ -142,18 +148,22 @@ class PerceptionProcess(WorkerProcess):
                 # if self.countFrames%20 == 0:
                 #    stamps, self.img_sign = self.inPs[1].recv()
                 
+                
                 #### INTERSECTION NAVIGATION ####
 
-                if(self.found_intersectiond is True):
-                    self.starting_yaw = IMU.yaw
+                if(self.found_intersection is True):
+                    self.starting_yaw = yaw
                     self.intersection_navigation = True
                     self.found_intersection = False
 
                 if(self.intersection_navigation is True):
-                    direction = "right"                      # This value will be defined by the Path Planning object.
-                    self.current_yaw = IMU.yaw                
-                self.current_steering_angle, self.speed, self.intersection_navigation = self.navigate_intersection.intersection_navigation(self.starting_yaw, self.current_yaw, direction)
+                    direction = "left"                      # This value will be defined by the Path Planning object.
+                    current_yaw = yaw
+                    self.curr_steering_angle, self.speed, self.intersection_navigation = self.navigate_intersection.intersection_navigation(self.starting_yaw, current_yaw, direction)
 
+                self.speed = 0.0
+                self.curr_steering_angle = 0.0
+                
                 #### NORMALIZE ANGLE ####
                 if self.curr_steering_angle >= 25:
                     self.curr_steering_angle = 24

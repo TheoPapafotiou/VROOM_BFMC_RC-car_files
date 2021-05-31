@@ -35,13 +35,6 @@ class SignDetectionProcess(WorkerProcess):
         """
         super(SignDetectionProcess,self).__init__(inPs, outPs)
         self.signDet = SignDetection()
-        #self.signDet = SignThread()
-        self.pedDet = PedestrianDetection()
-        #self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
-        #self.tracker = cv2.TrackerCSRT_create()      # low speed, high accuracy
-        #self.shapesDet = ShapesDetection()
-        #self.port       =   2244
-        #self.serverIp   =   '0.0.0.0'
         
         self.imgSize    = (480,640,3)
         self.imgHeight = 480
@@ -78,7 +71,7 @@ class SignDetectionProcess(WorkerProcess):
                 print("I'm done")
                 try:
                     for outP in self.outPs:
-                        outP.send([[stamps], img])
+                        outP.send([[stamps], img, label])
                         print("Frame with sign sent")
                     
                 except Exception as e:

@@ -66,8 +66,6 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        #self.signDet = SignDetection()
-        self.pedDet = PedestrianDetection()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
         self.imgSize    = (480,640,3)
@@ -106,7 +104,6 @@ class PerceptionProcess(WorkerProcess):
         """
         
         print('Start showing the photo')
-        img = None
 
         while True:
             try:
@@ -118,7 +115,6 @@ class PerceptionProcess(WorkerProcess):
                 
                 # ----------------------- read image -----------------------
                 img_dims = img[:,:,0].shape
-                self.out.write(img)
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
                 processed_img = hf.image_processing(img)
@@ -151,10 +147,9 @@ class PerceptionProcess(WorkerProcess):
                 perception_results = [self.curr_steering_angle, self.speed]
                 self.outPs[0].send([[stamps], lane_frame])
                 start_time_command = time.time()
-                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
                 self.outPs[1].send([perception_results, start_time_command])
                 
                 print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
-                raise Exception("Lane keeping fail")
+                raise Exception("Maybe error in lane keeping")
                 pass

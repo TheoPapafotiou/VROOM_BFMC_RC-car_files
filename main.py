@@ -50,6 +50,7 @@ from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
 from src.utils.autonomous.perceptionprocess        import PerceptionProcess
 from src.utils.autonomous.signDetectionprocess     import SignDetectionProcess
 from src.utils.autonomous.logicprocess             import LogicProcess
+from src.data.trafficlights                        import Example
 
 # =============================== CONFIG =================================================
 enableStream        =  True
@@ -106,6 +107,11 @@ if enableStream:
 #gps client process
 # gpsProc = GpsProcess([], [gpsBrS])
 # allProcesses.append(gpsProc)
+
+# Traffic lights client process 
+tlR, tlS = Pipe(dumplex = False)
+trafficLightsProc = Example([], [tlS])
+allProcesses.append(trafficLightsProc)
 
 # ===================================== CONTROL ==========================================
 #------------------- remote controller -----------------------

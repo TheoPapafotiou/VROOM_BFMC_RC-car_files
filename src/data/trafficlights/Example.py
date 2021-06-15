@@ -38,6 +38,7 @@ def runListener():
         time.sleep(0.5)
     # Stop the listener
     Semaphores.stop()
+    return Semaphores.s1_state, Semaphores.s2_state, Semaphores.s3_state
 
 if __name__ == "__main__":
     runListener()

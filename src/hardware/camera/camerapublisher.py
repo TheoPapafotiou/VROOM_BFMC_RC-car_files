@@ -76,16 +76,16 @@ class CameraPublisher(ThreadWithStop):
 
         # camera settings
         #self.camera.resolution      =   (int(1640/4),int(1232/4))
-        #self.camera.framerate       =   15
+        self.camera.framerate       =   8
 
-        #self.camera.brightness      =   55
+        self.camera.brightness      =   55
         #self.camera.shutter_speed   =   1200
-        #self.camera.contrast        =   0
+        self.camera.contrast        =   70
         #self.camera.iso             =   0 # auto
         
 
         self.imgSize                =   (640, 480)    # the actual image size
-        self.recordMode             =   False
+        self.recordMode             =   True
 
     # ===================================== GET STAMP ====================================
     def _get_timestamp(self):
@@ -122,7 +122,7 @@ class CameraPublisher(ThreadWithStop):
         i = 0
 
         while self._running:
-            
+        
             yield self._stream
             self._stream.seek(0)
             data = self._stream.read()
@@ -130,16 +130,18 @@ class CameraPublisher(ThreadWithStop):
             # read and reshape from bytes to np.array
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (480, 640, 3))
+#             img = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
             stamp = time.time()
-            #print("stamp = ", stamp)
 
             # output image and time stamp
             # Note: The sending process can be blocked, when doesn't exist any consumer process and it reaches the limit size.
-            for outP in self.outPs:
-                outP.send([[stamp], data])
+            #for outP in self.outPs:
+            self.outPs[0].send([[stamp], data])
 
             
             self._stream.seek(0)
             self._stream.truncate()
+            
+            time.sleep(0.01)
 
 

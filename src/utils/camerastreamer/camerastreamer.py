@@ -89,6 +89,8 @@ class CameraStreamer(WorkerProcess):
                     self.connection = self.client_socket.makefile('wb') 
                 except ConnectionRefusedError as error:
                     time.sleep(0.5)
+                    print("*"*20)
+                    print("*"*20)
                     pass
         except KeyboardInterrupt:
             self._blocker.set()
@@ -110,24 +112,16 @@ class CameraStreamer(WorkerProcess):
 
         while True:
             try:
-                time.sleep(0.1)
+                time.sleep(0.001)
                 stamps, image = inPs[0].recv()
+#                 print("#"*20)
+#                 print("Transfer to streamer: ", time.time() - stamps[0])
+#                 print("#"*20)
                 result, imageB = cv2.imencode('.jpg', image, encode_param)
                 data   =  imageB.tobytes()
                 size   =  len(data)
                 self.connection.write(struct.pack("<L",size))
                 self.connection.write(data)
-                    
-                #else:
-                #    time.sleep(0.1)
-                #    filename = "test_image.jpg"#+str(self.frameCounter)+".jpg"
-                #    if cv2.imread(filename) is not None:
-                #        image = cv2.imread(filename)
-                #        result, imageB = cv2.imencode('.jpg', image, encode_param)
-                #        data   =  imageB.tobytes()
-                #        size   =  len(data)
-                #        self.connection.write(struct.pack("<L",size))
-                #        self.connection.write(data)
                 
             except Exception as e:
                 print("CameraStreamer failed to stream images:",e,"\n")

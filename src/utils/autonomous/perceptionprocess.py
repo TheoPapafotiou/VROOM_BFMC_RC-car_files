@@ -86,9 +86,7 @@ class PerceptionProcess(WorkerProcess):
         self.decrementInTime = 0.3 #sec
         self.fps = 10 
         self.decrementInFrames = self.decrementInTime * self.fps
-        #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
-
+        
     # ===================================== RUN ==========================================
     def run(self):
         """Apply the initializers and start the threads.
@@ -116,16 +114,18 @@ class PerceptionProcess(WorkerProcess):
 
         while True:
             try:
-                #print("\nPerception Process")
                 start = time.time()
                 self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
-                print("Time for taking the perception image: ", time.time() - start)
-                
+#                 print("&"*20)
+#                 print("Time for the transfer of the perception image: ", time.time() - stamps[0])
+#                 print("&"*20) 
+                 
                 if self.label is None:
                     self.img_sign = img
                 
                 # ----------------------- read image -----------------------
+                start = time.time()
                 img_dims = img[:,:,0].shape
                 mask = Mask(4, img_dims)
                 mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
@@ -145,38 +145,27 @@ class PerceptionProcess(WorkerProcess):
                 
                 start = time.time()
                 
-                
-#                 if self.countFrames in range(0, int(self.decrementInFrames)):
-#                     self.speed = self.start_speed
-#                     print("Max speed")
-#                 elif self.countFrames % int(self.decrementInFrames) == 0 and self.speed is not self.desired_speed:
-#                     self.speed -= self.decrement
-#                     print("Middle speed: ", self.speed)
-#                 elif self.countFrames > self.decrementInFrames * self.Nsteps:
-#                     self.speed = self.desired_speed
-#                     print("Min speed")
-                
-                if self.label is not None:
-                    self.speed = 0.0
-                
-                #self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+#                 if self.label is not None:
+#                     self.speed = 0.0
+                self.speed = 0.08
+                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                self.curr_steering_angle *= 2
                 
                 if self.curr_steering_angle >= 25:
-                    self.curr_steering_angle = 24
-                if self.curr_steering_angle <= -25:
-                    self.curr_steering_angle = -24
-                    
+                    self.curr_steering_angle = 23
+                elif self.curr_steering_angle <= -25:
+                    self.curr_steering_angle = -23
                 
-                print("Lane Keeping duration: ", time.time() - start)
+                #print("Lane Keeping duration: ", time.time() - start)
                 
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], self.img_sign])
-                start_time_command = time.time()
-                self.outPs[1].send([perception_results, start_time_command])
+                stamp = time.time()
+                #self.outPs[0].send([[stamp], self.img_sign])
+                self.outPs[1].send([perception_results, stamp])
                 
-                print("\nTotal duration of perception: ", time.time() - start, "\n")
+                #print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
                 raise Exception("Maybe error in lane keeping")
                 pass

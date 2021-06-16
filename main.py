@@ -109,7 +109,7 @@ if enableStream:
 # allProcesses.append(gpsProc)
 
 # Traffic lights client process 
-tlR, tlS = Pipe(dumplex = False)
+tlR, tlS = Pipe(duplex = False)
 trafficLightsProc = Example([], [tlS])
 allProcesses.append(trafficLightsProc)
 

@@ -85,7 +85,7 @@ class CameraPublisher(ThreadWithStop):
         
 
         self.imgSize                =   (640, 480)    # the actual image size
-        self.recordMode             =   True
+        self.recordMode             =   False
 
     # ===================================== GET STAMP ====================================
     def _get_timestamp(self):

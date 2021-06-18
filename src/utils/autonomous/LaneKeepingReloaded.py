@@ -16,8 +16,8 @@ class LaneKeepingReloaded:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-#         wT, hT, wB,hB = 0.1*self.width, 0.5*self.height, 0, 0.8*self.height
-        wT, hT, wB,hB = 70, 350, 0, 443
+        wT, hT, wB,hB = 0.1*self.width, 0.5*self.height, 0, 0.8*self.height
+        # wT, hT, wB,hB = 70, 350, 0, 443
         self.src_points = np.float32([[wT, hT],[width - wT, hT], [wB, hB], [width - wB, hB]])
         self.warp_matrix = None
         self.inv_warp_matrix = None
@@ -132,8 +132,6 @@ class LaneKeepingReloaded:
             #Find window boundaries in x and y axis
             win_y_low = self.height - (1 + window) * window_height
             win_y_high = self.height - window * window_height
-
-
 
             #LEFT 
             
@@ -287,7 +285,7 @@ class LaneKeepingReloaded:
         if len(mean_list) != 0:
             weighted_mean = self.weighted_average(mean_list)
         else:
-            weighted_mean = 320
+            weighted_mean = self.width//2
 
          
 
@@ -374,7 +372,7 @@ class LaneKeepingReloaded:
             error, setpoint, circle_im = self.get_error(poly_image)
             print("GetError: ", time.time() - start)
             
-            nose2wheel = 320
+            nose2wheel = self.width//2
 
             self.angle = 90 - math.degrees(math.atan2(nose2wheel, error))
             both_lanes = True
@@ -384,11 +382,11 @@ class LaneKeepingReloaded:
         elif right is None and left is not None:
             print("LEFT LANE")
 
-            x1 = left[0] * 480 ** 2 + left[1] * 480 + left[2]
+            x1 = left[0] * self.height ** 2 + left[1] * self.height + left[2]
             x2 = left[2]
 
             dx = math.fabs(x2 - x1)
-            dy = 480
+            dy = self.height
 
             #tan = float(dy) / float(dx) 
 
@@ -399,11 +397,11 @@ class LaneKeepingReloaded:
         elif left is None and right is not None:
             print("RIGHT LANE")
 
-            x1 = right[0] * 480 ** 2 + right[1] * 480 + right[2]
+            x1 = right[0] * self.height ** 2 + right[1] * self.height + right[2]
             x2 = right[2]
 
             dx = math.fabs(x2 - x1)
-            dy = 480
+            dy = self.height
 
             #tan = float(dy) / float(dx) 
 

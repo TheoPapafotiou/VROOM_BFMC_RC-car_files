@@ -66,7 +66,7 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        self.lane_keeping = LaneKeepingReloaded(640, 480)
+        self.lane_keeping = LaneKeepingReloaded(320, 240)
         
         self.imgSize    = (480,640,3)
         self.imgHeight = 480
@@ -124,14 +124,6 @@ class PerceptionProcess(WorkerProcess):
                 if self.label is None:
                     self.img_sign = img
                 
-                # ----------------------- read image -----------------------
-                start = time.time()
-                img_dims = img[:,:,0].shape
-                mask = Mask(4, img_dims)
-                mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
-                processed_img = hf.image_processing(img)
-                masked_img = mask.apply_to_img(processed_img)
-                
                 # ----------------------detect sign in image -----------------------
                 start = time.time()
                 if self.countFrames%10 == 1:
@@ -148,7 +140,8 @@ class PerceptionProcess(WorkerProcess):
 #                 if self.label is not None:
 #                     self.speed = 0.0
                 self.speed = 0.08
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                img_lane = img.reshape(320,240,3)
+                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 self.curr_steering_angle *= 2
                 
                 if self.curr_steering_angle >= 25:

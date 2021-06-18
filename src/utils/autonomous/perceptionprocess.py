@@ -68,24 +68,15 @@ class PerceptionProcess(WorkerProcess):
         super(PerceptionProcess,self).__init__(inPs, outPs)
         self.lane_keeping = LaneKeepingReloaded(320, 240)
         
-        self.imgSize    = (480,640,3)
         self.imgHeight = 480
         self.imgWidth = 640
-        self.img_sign = np.zeros((640, 480))
+        self.img_sign = np.zeros((self.imgWidth, self.imgHeight))
         self.label = None
         self.countFrames = 0
         self.speed = 0.0
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
-        
-        self.start_speed = 0.4
-        self.desired_speed = 0.1
-        self.Nsteps = 3
-        self.decrement = (self.start_speed - self.desired_speed)/self.Nsteps
-        self.decrementInTime = 0.3 #sec
-        self.fps = 10 
-        self.decrementInFrames = self.decrementInTime * self.fps
         
     # ===================================== RUN ==========================================
     def run(self):
@@ -140,22 +131,24 @@ class PerceptionProcess(WorkerProcess):
 #                 if self.label is not None:
 #                     self.speed = 0.0
                 self.speed = 0.08
-                img_lane = img.reshape(320,240,3)
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
-                self.curr_steering_angle *= 2
+                img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
+                self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
+#                 self.curr_steering_angle *= 2
                 
                 if self.curr_steering_angle >= 25:
                     self.curr_steering_angle = 23
                 elif self.curr_steering_angle <= -25:
                     self.curr_steering_angle = -23
+                    
+                if self.curr_steering_angle > 15:
+                    self.speed = 0.1#
                 
-                #print("Lane Keeping duration: ", time.time() - start)
-                
+                print("Lane Keeping duration: ", time.time() - start)
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
                 stamp = time.time()
-                #self.outPs[0].send([[stamp], self.img_sign])
+                self.outPs[0].send([[stamp], lane_frame])
                 self.outPs[1].send([perception_results, stamp])
                 
                 #print("\nTotal duration of perception: ", time.time() - start, "\n")

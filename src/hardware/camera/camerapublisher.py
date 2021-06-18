@@ -76,7 +76,7 @@ class CameraPublisher(ThreadWithStop):
 
         # camera settings
         #self.camera.resolution      =   (int(1640/4),int(1232/4))
-        self.camera.framerate       =   8
+        self.camera.framerate       =   20
 
         self.camera.brightness      =   55
         #self.camera.shutter_speed   =   1200

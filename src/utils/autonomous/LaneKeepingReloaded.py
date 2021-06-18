@@ -412,4 +412,4 @@ class LaneKeepingReloaded:
             self.angle = 0.0
             print("Problem with else")
     
-        return self.angle, both_lanes, thresh
+        return self.angle, thresh

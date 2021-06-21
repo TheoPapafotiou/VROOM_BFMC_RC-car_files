@@ -22,9 +22,7 @@ from src.utils.autonomous.vehicleHandler       import VehicleHandler
 class VehicleDetectionProcess(WorkerProcess):
     # ===================================== INIT =========================================
     def __init__(self, inPs, outPs):
-        """Process used for debugging. It receives the images from the raspberry and
-        duplicates the perception pipline that is running on the raspberry.
-
+        """
         Parameters
         ----------
         inPs : list(Pipe)
@@ -49,7 +47,7 @@ class VehicleDetectionProcess(WorkerProcess):
         """Initialize the vehicleDetection thread to receive the video.
         """
         vehTh = Thread(name = 'VehicleDetectionThread',target = self._haha2)
-        self.threads.append(signTh)
+        self.threads.append(vehTh)
         
     # ===================================== DETECT VEHICLE =================================
     def _haha2(self):

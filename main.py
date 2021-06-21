@@ -85,11 +85,13 @@ if enableStream:
         signR, signS = Pipe(duplex = False)
         vehInitR, vehInitS = Pipe(duplex = False)
         vehR, vehS = Pipe(duplex = False)
+        pedInitR, pedInitS = Pipe(duplex = False)
+        pedR, pedS = Pipe(duplex = False)
         
         camProcess = CameraProcess([],[camSPh])
         allProcesses.append(camProcess)
         
-        percProc = PerceptionProcess([camRPh, signR, vehR], [camStSP, perc2logS, signInitS, vehInitS])
+        percProc = PerceptionProcess([camRPh, signR, vehR, pedR], [camStSP, perc2logS, signInitS, vehInitS, pedInitS])
         allProcesses.append(percProc)
         
         logProc = LogicProcess([perc2logR], [comS])
@@ -100,6 +102,9 @@ if enableStream:
 
         vehProc = VehicleDetectionProcess([vehInitR], [vehS])
         allProcesses.append(vehProc)
+
+        pedProc = PedestrianDetectionProcess([pedInitR], [pedS])
+        allProcesses.append(pedProc)
         
         shProc = SerialHandler([comR], [])
         allProcesses.append(shProc)

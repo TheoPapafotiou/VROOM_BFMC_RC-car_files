@@ -51,6 +51,8 @@ from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 from src.utils.autonomous.vehicleHandler       import VehicleHandler
+from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
+
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -75,13 +77,12 @@ class PerceptionProcess(WorkerProcess):
         self.imgWidth = 640
         self.img_sign = np.zeros((640, 480))
         self.img_vehicle = np.zeros((640, 480))
+        self.img_pedestrian = np.zeros((640, 480))
         self.countFrames = 0
         self.speed = 0.2
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
-        #self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        #self.out = cv2.VideoWriter('lab_test_video.avi',self.fourcc, 30.0 , (self.imgWidth,self.imgHeight)) 
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -133,10 +134,25 @@ class PerceptionProcess(WorkerProcess):
                 if self.countFrames%20 == 0:
                    stamps, self.img_sign = self.inPs[1].recv()  
 
-
                 # ----------------------detect vehicle in image -----------------------
-                self.outPs[3].send([[stamps], img_vehicle])
-                stamps, self.img_vehicle = self.inPs[2].recv()
+                start = time.time()
+                try:
+                    self.outPs[3].send([[stamps], img])
+                    print("Frame sent for vehicle")
+                    stamps, self.img_vehicle = self.inPs[2].recv()
+                    print("Vehicle Detection duration: ", time.time() - start)
+                except:
+                    raise Exception("Something went wroong!")
+
+                # ----------------------detect pedestrian in image --------------------
+                start = time.time()
+                try:
+                    self.outPs[4].send([[stamps], img])
+                    print("Frame sent for pedestrian")
+                    stamps, self.img_pedestrian = self.inPs[3].recv()
+                    print("Pedestrian Detection duration: ", time.time() - start)
+                except:
+                    raise Exception("I tried to detect this fucking doll but failed!")
 
                 # ----------------------lane keeping -----------------------
                 start = time.time()

@@ -119,44 +119,45 @@ class LaneKeepingReloaded:
         #Lists for indices of each lane
         left_lane_inds = []
         right_lane_inds = []
+        
+        if abs(rightx_base - leftx_base) > (self.width//10):
+            for window in range(windows_number):
+                #Find window boundaries in x and y axis
+                win_y_low = self.height - (1 + window) * window_height
+                win_y_high = self.height - window * window_height
 
-        for window in range(windows_number):
-            #Find window boundaries in x and y axis
-            win_y_low = self.height - (1 + window) * window_height
-            win_y_high = self.height - window * window_height
+                #LEFT 
+                
+                win_xleft_low = leftx_current - margin
+                win_xleft_high = leftx_current + margin
+               
+                # Draw windows for visualisation
+                cv2.rectangle(out, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),\
+                            (0, 0, 255), 2)
 
-            #LEFT 
-            
-            win_xleft_low = leftx_current - margin
-            win_xleft_high = leftx_current + margin
-           
-            # Draw windows for visualisation
-            cv2.rectangle(out, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),\
-                        (0, 0, 255), 2)
+                good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
+                                & (nonzerox >= win_xleft_low) & (nonzerox <= win_xleft_high)).nonzero()[0]
+                left_lane_inds.append(good_left_inds)
 
-            good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
-                            & (nonzerox >= win_xleft_low) & (nonzerox <= win_xleft_high)).nonzero()[0]
-            left_lane_inds.append(good_left_inds)
-
-            #RIGHT
-            win_xright_low = rightx_current - margin
-            win_xright_high = rightx_current + margin
+                #RIGHT
+                win_xright_low = rightx_current - margin
+                win_xright_high = rightx_current + margin
 
 
-            cv2.rectangle(out, (win_xright_low, win_y_low), (win_xright_high, win_y_high),\
-                        (0, 255, 0), 2)
+                cv2.rectangle(out, (win_xright_low, win_y_low), (win_xright_high, win_y_high),\
+                            (0, 255, 0), 2)
 
-            # Identify the nonzero pixels in x and y within the window
-            good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
-                            & (nonzerox >= win_xright_low) & (nonzerox <= win_xright_high)).nonzero()[0]
+                # Identify the nonzero pixels in x and y within the window
+                good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy <= win_y_high)
+                                & (nonzerox >= win_xright_low) & (nonzerox <= win_xright_high)).nonzero()[0]
 
-            right_lane_inds.append(good_right_inds)
-            # If you found > minpix pixels, recenter next window on their mean position
-            if len(good_left_inds) >  minpix:
-                leftx_current = int(np.mean(nonzerox[good_left_inds]))
+                right_lane_inds.append(good_right_inds)
+                # If you found > minpix pixels, recenter next window on their mean position
+                if len(good_left_inds) >  minpix:
+                    leftx_current = int(np.mean(nonzerox[good_left_inds]))
 
-            if len(good_right_inds) > minpix:
-                rightx_current = int(np.mean(nonzerox[good_right_inds]))
+                if len(good_right_inds) > minpix:
+                    rightx_current = int(np.mean(nonzerox[good_right_inds]))
 
         left_lane_inds = np.concatenate(left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)

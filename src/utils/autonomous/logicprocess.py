@@ -128,7 +128,7 @@ class LogicProcess(WorkerProcess):
                     else:
                         outP.send(commandM)
                     #print("Duration of the command to be send: ", time.time() - start)
-                    print("\nTotal duration of logic: ", time.time() - start, "\n")
+                    #print("\nTotal duration of logic: ", time.time() - start, "\n")
 
             except Exception as e:
                 print(e)

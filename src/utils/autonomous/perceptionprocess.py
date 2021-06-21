@@ -77,6 +77,7 @@ class PerceptionProcess(WorkerProcess):
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
+        self.angle_factor = 23.0/90
         
     # ===================================== RUN ==========================================
     def run(self):
@@ -116,15 +117,15 @@ class PerceptionProcess(WorkerProcess):
                     self.img_sign = img
                 
                 # ----------------------detect sign in image -----------------------
-                start = time.time()
-                if self.countFrames%10 == 1:
-                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[2].send([[stamps], img_bgr])
-                
-                elif self.countFrames%10 == 0:
-                   stamps, self.img_sign, self.label = self.inPs[1].recv()
-                   print("\n===========\n", self.label, "\n===========\n")
-                print("Sign Detection Duration: ", time.time() - start)
+#                 start = time.time()
+#                 if self.countFrames%10 == 1:
+#                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+#                     self.outPs[2].send([[stamps], img_bgr])
+#                 
+#                 elif self.countFrames%10 == 0:
+#                    stamps, self.img_sign, self.label = self.inPs[1].recv()
+#                    print("\n===========\n", self.label, "\n===========\n")
+#                 print("Sign Detection Duration: ", time.time() - start)
                 
                 start = time.time()
                 
@@ -133,17 +134,12 @@ class PerceptionProcess(WorkerProcess):
                 self.speed = 0.08
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
                 self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
-#                 self.curr_steering_angle *= 2
-                
-                if self.curr_steering_angle >= 25:
-                    self.curr_steering_angle = 23
-                elif self.curr_steering_angle <= -25:
-                    self.curr_steering_angle = -23
+                self.curr_steering_angle *= self.angle_factor
                     
                 if self.curr_steering_angle > 15:
                     self.speed = 0.1#
                 
-                print("Lane Keeping duration: ", time.time() - start)
+#                 print("Lane Keeping duration: ", time.time() - start)
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]

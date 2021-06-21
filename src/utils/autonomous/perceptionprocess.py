@@ -79,10 +79,11 @@ class PerceptionProcess(WorkerProcess):
         self.img_vehicle = np.zeros((640, 480))
         self.img_pedestrian = np.zeros((640, 480))
         self.countFrames = 0
-        self.speed = 0.2
+        self.speed = 0.0
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
+        self.angle_factor = 23.0/90
 
     # ===================================== RUN ==========================================
     def run(self):
@@ -112,71 +113,55 @@ class PerceptionProcess(WorkerProcess):
 
         while True:
             try:
-                #print("\nPerception Process")
                 start = time.time()
                 self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
-                print("Time for taking the perception image: ", time.time() - start)
-                
-                # ----------------------- read image -----------------------
-                img_dims = img[:,:,0].shape
-                self.out.write(img)
-                mask = Mask(4, img_dims)
-                mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
-                processed_img = hf.image_processing(img)
-                masked_img = mask.apply_to_img(processed_img)
+#                 print("&"*20)
+#                 print("Time for the transfer of the perception image: ", time.time() - stamps[0])
+#                 print("&"*20) 
+                 
+                if self.label is None:
+                    self.img_sign = img
                 
                 # ----------------------detect sign in image -----------------------
                 if self.countFrames%20 == 1:
                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                     self.outPs[2].send([[stamps], img_bgr])
                 
-                if self.countFrames%20 == 0:
+                elif self.countFrames%20 == 0:
                    stamps, self.img_sign = self.inPs[1].recv()  
-
-                # ----------------------detect vehicle in image -----------------------
-                start = time.time()
-                try:
-                    self.outPs[3].send([[stamps], img])
-                    print("Frame sent for vehicle")
-                    stamps, self.img_vehicle = self.inPs[2].recv()
-                    print("Vehicle Detection duration: ", time.time() - start)
-                except:
-                    raise Exception("Something went wroong!")
 
                 # ----------------------detect pedestrian in image --------------------
                 start = time.time()
-                try:
+                if self.countFrames%10 == 1:
                     self.outPs[4].send([[stamps], img])
-                    print("Frame sent for pedestrian")
+                    #print("Frame sent for pedestrian")
+                
+                elif self.countFrames%10 == 0:
                     stamps, self.img_pedestrian = self.inPs[3].recv()
                     print("Pedestrian Detection duration: ", time.time() - start)
-                except:
-                    raise Exception("I tried to detect this fucking doll but failed!")
-
+                
                 # ----------------------lane keeping -----------------------
                 start = time.time()
-                self.speed = 0.2
+                self.speed = 0.08
 
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
+                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 
-                #self.curr_steering_angle *= 2
-                if self.curr_steering_angle >= 25:
-                    self.curr_steering_angle = 24
-                if self.curr_steering_angle <= -25:
-                    self.curr_steering_angle = -24
-                    
+                self.curr_steering_angle *= self.angle_factor
+
+                if self.curr_steering_angle > 15:
+                    self.speed = 0.1#
                 
-                print("Lane Keeping duration: ", time.time() - start)
+                #print("Lane Keeping duration: ", time.time() - start)
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], img_vehicle])
-                start_time_command = time.time()
-                #print("\n\n=========================\nI just sent the perception results\n=================================\n\n")
-                self.outPs[1].send([perception_results, start_time_command])
+                stamp = time.time()
+                self.outPs[0].send([[stamp], self.img_pedestrian]])
+                self.outPs[1].send([perception_results, stamp])
                 
-                print("\nTotal duration of perception: ", time.time() - start, "\n")
+                #print("\nTotal duration of perception: ", time.time() - start, "\n")
             except:
                 raise Exception("Lane keeping fail")
                 pass

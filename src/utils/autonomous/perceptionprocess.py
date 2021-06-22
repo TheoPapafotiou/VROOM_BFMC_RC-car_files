@@ -136,13 +136,13 @@ class PerceptionProcess(WorkerProcess):
 
                 # ----------------------detect pedestrian in image --------------------
                 start = time.time()
-                if self.countFrames%100 == 2:
+                if self.countFrames%30 == 2:
                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    self.outPs[4].send([[stamps], img_bgr])
+                    self.outPs[4].send([[stamps], img])
                     print("Frame sent for pedestrian")
                 
-                if self.countFrames%100 == 0:
-                    stamps, self.detected_pedestrian = self.inPs[3].recv()
+                if self.countFrames%30 == 0:
+                    stamps, self.img_pedestrian = self.inPs[3].recv()
                 #print("Pedestrian Detection duration: ", time.time() - start)
                 
                 # ----------------------lane keeping -----------------------

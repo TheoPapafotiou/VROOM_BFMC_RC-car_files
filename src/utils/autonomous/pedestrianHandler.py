@@ -14,17 +14,21 @@ class PedestrianHandler:
 
         self.model = cv2.dnn.readNetFromDarknet(self.config_path, self.weights_path)
         self.layer_name = self.model.getLayerNames()
+        self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
+        self.MIN_CONFIDENCE = 0.2
+        self.NMS_THRESHOLD = 0.3
 
         self.pedDetected = False
 
-    def pedestrian_detection_procedure(image, model, layer_name, personidz=0):
+    def pedestrian_detection_procedure(self, image, personidz=0):
+
         (H, W) = image.shape[:2]
         results = []
 
         blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416),
             swapRB=True, crop=False)
-        model.setInput(blob)
-        layerOutputs = model.forward(layer_name)
+        self.model.setInput(blob)
+        layerOutputs = self.model.forward(self.layer_name)
 
         boxes = []
         centroids = []
@@ -37,7 +41,7 @@ class PedestrianHandler:
                 classID = np.argmax(scores)
                 confidence = scores[classID]
 
-                if classID == personidz and confidence > MIN_CONFIDENCE:
+                if classID == personidz and confidence > self.MIN_CONFIDENCE:
 
                     box = detection[0:4] * np.array([W, H, W, H])
                     (centerX, centerY, width, height) = box.astype("int")
@@ -50,7 +54,7 @@ class PedestrianHandler:
                     confidences.append(float(confidence))
         # apply non-maxima suppression to suppress weak, overlapping
         # bounding boxes
-        idzs = cv2.dnn.NMSBoxes(boxes, confidences, MIN_CONFIDENCE, NMS_THRESHOLD)
+        idzs = cv2.dnn.NMSBoxes(boxes, confidences, self.MIN_CONFIDENCE, self.NMS_THRESHOLD)
         # ensure at least one detection exists
         if len(idzs) > 0:
             # loop over the indexes we are keeping
@@ -68,15 +72,20 @@ class PedestrianHandler:
 
     def detectPedestrian(self, image):
         
-        self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
-
+#         try:
+# 
+#         except:
+#             print("\n\n")
+#             print("Error in Pedestrian Detection")
+#             print("\n\n")
+            
         image = imutils.resize(image, width=700)
- 
-        results = pedestrian_detection_procedure(image, self.model, self.layer_name, personidz=self.LABELS.index("person"))
-
+        
+        results = self.pedestrian_detection_procedure(image, personidz=self.LABELS.index("person"))
+            
         for res in results:
             cv2.rectangle(image, (res[1][0],res[1][1]), (res[1][2],res[1][3]), (0, 255, 0), 2)
             self.pedDetected = True
-            print("PedDetected: ", self.pedDetected)
+        print("PedDetected: ", self.pedDetected)
             
         return self.pedDetected 

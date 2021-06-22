@@ -56,11 +56,16 @@ class PedestrianDetectionProcess(WorkerProcess):
             try:
                 start = time.time()
                 stamps, img = self.inPs[0].recv()
-                detected_pedestrian = self.pedDet.detectPedestrian(img)
+                try:
+                    detected_pedestrian = self.pedDet.detectPedestrian(img)
+                except:
+                    print("\n\n")
+                    print("Error in Pedestrian Detection PROCESS")
+                    print("\n\n")
                 print("PedDetection duration: ", time.time() - start)
                 try:
                     for outP in self.outPs:
-                        outP.send([detected_pedestrian])
+                        outP.send([[stamps], img])
                         print("Frame with pedestrian sent")
                     
                 except Exception as e:

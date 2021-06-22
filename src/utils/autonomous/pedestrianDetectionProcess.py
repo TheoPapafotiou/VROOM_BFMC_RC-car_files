@@ -1,7 +1,22 @@
+import time
+import socket
+import struct
+import io
+import base64
+
 import cv2
 import numpy as np
 import imutils
 from imutils.object_detection import non_max_suppression
+
+from threading import Thread
+
+import multiprocessing
+from multiprocessing import Process,Event
+
+
+from src.utils.templates.workerprocess         import WorkerProcess
+from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
 
 class PedestrianDetectionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -15,9 +30,8 @@ class PedestrianDetectionProcess(WorkerProcess):
             List of output pipes
         """
         super(PedestrianDetectionProcess,self).__init__(inPs, outPs)
-        self.pedDet = VehicleHandler()
+        self.pedDet = PedestrianHandler()
         
-        self.imgSize = (480,640,3)
         self.img = np.zeros((640, 480))
 
     # ===================================== RUN ==========================================
@@ -40,11 +54,13 @@ class PedestrianDetectionProcess(WorkerProcess):
         
         while True:
             try:
+                start = time.time()
                 stamps, img = self.inPs[0].recv()
                 detected_pedestrian = self.pedDet.detectPedestrian(img)
+                print("PedDetection duration: ", time.time() - start)
                 try:
                     for outP in self.outPs:
-                        outP.send([[stamps], img])
+                        outP.send([detected_pedestrian])
                         print("Frame with pedestrian sent")
                     
                 except Exception as e:

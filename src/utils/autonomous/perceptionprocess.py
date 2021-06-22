@@ -43,7 +43,6 @@ import multiprocessing
 from multiprocessing import Process,Event
 
 from src.utils.templates.workerprocess         import WorkerProcess
-from src.utils.autonomous.ped_detection        import PedestrianDetection
 from src.utils.autonomous.shapes_detection     import ShapesDetection
 from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
@@ -68,16 +67,15 @@ class PerceptionProcess(WorkerProcess):
             List of output pipes
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
-        #self.signDet = SignDetection()
-        self.pedDet = PedestrianDetection()
-        self.lane_keeping = LaneKeepingReloaded(640, 480)
-        
-        self.imgSize = (480,640,3)
+
         self.imgHeight = 480
         self.imgWidth = 640
-        self.img_sign = np.zeros((640, 480))
-        self.img_vehicle = np.zeros((640, 480))
-        self.img_pedestrian = np.zeros((640, 480))
+        self.lane_keeping = LaneKeepingReloaded(self.imgWidth//2, self.imgHeight//2)
+        
+        self.img_sign = np.zeros((self.imgWidth, self.imgHeight))
+        self.img_pedestrian = np.zeros((self.imgWidth, self.imgHeight))
+        self.detected_pedestrian = False
+        self.label = None
         self.countFrames = 0
         self.speed = 0.0
         self.intersection_navigation = False
@@ -122,43 +120,49 @@ class PerceptionProcess(WorkerProcess):
                  
                 if self.label is None:
                     self.img_sign = img
+                    
+                self.img_pedestrian = img
+                self.detected_pedestrian = False
                 
                 # ----------------------detect sign in image -----------------------
-                if self.countFrames%20 == 1:
+                start = time.time()
+                if self.countFrames%10 == 1:
                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                     self.outPs[2].send([[stamps], img_bgr])
                 
-                elif self.countFrames%20 == 0:
-                   stamps, self.img_sign = self.inPs[1].recv()  
+                elif self.countFrames%10 == 0:
+                   stamps, self.img_sign = self.inPs[1].recv()
+                print("Sign Detection Duration: ", time.time() - start)
 
                 # ----------------------detect pedestrian in image --------------------
                 start = time.time()
-                if self.countFrames%10 == 1:
-                    self.outPs[4].send([[stamps], img])
-                    #print("Frame sent for pedestrian")
+                if self.countFrames%100 == 2:
+                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    self.outPs[4].send([[stamps], img_bgr])
+                    print("Frame sent for pedestrian")
                 
-                elif self.countFrames%10 == 0:
-                    stamps, self.img_pedestrian = self.inPs[3].recv()
-                    print("Pedestrian Detection duration: ", time.time() - start)
+                if self.countFrames%100 == 0:
+                    stamps, self.detected_pedestrian = self.inPs[3].recv()
+                #print("Pedestrian Detection duration: ", time.time() - start)
                 
                 # ----------------------lane keeping -----------------------
                 start = time.time()
-                self.speed = 0.08
+                self.speed = 0.0
 
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
+                self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 
                 self.curr_steering_angle *= self.angle_factor
 
                 if self.curr_steering_angle > 15:
-                    self.speed = 0.1#
+                    self.speed = 0.0#
                 
                 #print("Lane Keeping duration: ", time.time() - start)
                 
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
                 stamp = time.time()
-                self.outPs[0].send([[stamp], self.img_pedestrian]])
+                self.outPs[0].send([[stamp], self.img_pedestrian])
                 self.outPs[1].send([perception_results, stamp])
                 
                 #print("\nTotal duration of perception: ", time.time() - start, "\n")

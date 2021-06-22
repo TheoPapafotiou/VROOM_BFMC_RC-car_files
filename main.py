@@ -44,12 +44,14 @@ from src.hardware.serialhandler.serialhandler        import SerialHandler
 # from src.data.consumer.consumerprocess             import Consumer
 
 # utility imports
-from src.utils.camerastreamer.camerastreamer       import CameraStreamer
-from src.utils.cameraspoofer.cameraspooferprocess  import CameraSpooferProcess
-from src.utils.remotecontrol.remotecontrolreceiver import RemoteControlReceiver
-from src.utils.autonomous.perceptionprocess        import PerceptionProcess
-from src.utils.autonomous.signDetectionprocess     import SignDetectionProcess
-from src.utils.autonomous.logicprocess             import LogicProcess
+from src.utils.camerastreamer.camerastreamer           import CameraStreamer
+from src.utils.cameraspoofer.cameraspooferprocess      import CameraSpooferProcess
+from src.utils.remotecontrol.remotecontrolreceiver     import RemoteControlReceiver
+from src.utils.autonomous.perceptionprocess            import PerceptionProcess
+from src.utils.autonomous.signDetectionprocess         import SignDetectionProcess
+from src.utils.autonomous.vehicleDetectionProcess      import VehicleDetectionProcess
+from src.utils.autonomous.pedestrianDetectionProcess   import PedestrianDetectionProcess
+from src.utils.autonomous.logicprocess                 import LogicProcess
 
 # =============================== CONFIG =================================================
 enableStream        =  True
@@ -97,11 +99,11 @@ if enableStream:
         logProc = LogicProcess([perc2logR], [comS])
         allProcesses.append(logProc)
         
-        #signProc = SignDetectionProcess([signInitR], [signS])
-        #allProcesses.append(signProc)
+        signProc = SignDetectionProcess([signInitR], [signS])
+        allProcesses.append(signProc)
 
-        vehProc = VehicleDetectionProcess([vehInitR], [vehS])
-        allProcesses.append(vehProc)
+#         vehProc = VehicleDetectionProcess([vehInitR], [vehS])
+#         allProcesses.append(vehProc)
 
         pedProc = PedestrianDetectionProcess([pedInitR], [pedS])
         allProcesses.append(pedProc)

@@ -7,13 +7,13 @@ class PedestrianHandler:
 
     def __init__(self):
 
-        self.labelsPath = "coco.names"
-        self.LABELS = open(labelsPath).read().strip().split("\n")
-        self.weights_path = "yolov4-tiny.weights"
-        self.config_path = "yolov4-tiny.cfg"
+        self.labelsPath = "src/utils/autonomous/coco.names"
+        self.LABELS = open(self.labelsPath).read().strip().split("\n")
+        self.weights_path = "src/utils/autonomous/yolov4-tiny.weights"
+        self.config_path = "src/utils/autonomous/yolov4-tiny.cfg"
 
-        self.model = cv2.dnn.readNetFromDarknet(config_path, weights_path)
-        self.layer_name = model.getLayerNames()
+        self.model = cv2.dnn.readNetFromDarknet(self.config_path, self.weights_path)
+        self.layer_name = self.model.getLayerNames()
 
         self.pedDetected = False
 
@@ -68,16 +68,15 @@ class PedestrianHandler:
 
     def detectPedestrian(self, image):
         
-        self.layer_name = [layer_name[i[0] - 1] for i in model.getUnconnectedOutLayers()]
+        self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
 
         image = imutils.resize(image, width=700)
  
-        results = pedestrian_detection(image, model, layer_name, personidz=LABELS.index("person"))
+        results = pedestrian_detection(image, self.model, self.layer_name, personidz=self.LABELS.index("person"))
 
         for res in results:
             cv2.rectangle(image, (res[1][0],res[1][1]), (res[1][2],res[1][3]), (0, 255, 0), 2)
             self.pedDetected = True
-
-        cv2.imshow("Detection",image)
-
+            print("PedDetected: ", self.pedDetected)
+            
         return self.pedDetected 

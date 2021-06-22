@@ -72,7 +72,7 @@ class PedestrianHandler:
 
         image = imutils.resize(image, width=700)
  
-        results = pedestrian_detection(image, self.model, self.layer_name, personidz=self.LABELS.index("person"))
+        results = pedestrian_detection_procedure(image, self.model, self.layer_name, personidz=self.LABELS.index("person"))
 
         for res in results:
             cv2.rectangle(image, (res[1][0],res[1][1]), (res[1][2],res[1][3]), (0, 255, 0), 2)

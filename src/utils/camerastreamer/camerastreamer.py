@@ -52,8 +52,8 @@ class CameraStreamer(WorkerProcess):
             List of output pipes only the first pipe is used to transfer the captured frames. 
         """
         super(CameraStreamer,self).__init__( inPs, outPs)
-        #self.serverIp   =  '192.168.3.117' # PC ip
-        self.serverIp   =  '192.168.3.117' # PC ip 
+        #self.serverIp   =  '192.168.3.117' # Theo PC ip
+        self.serverIp   =  '192.168.3.122' # Efthymia PC ip 
         self.port       =  2244            # com port
         self.frameCounter = 0
         

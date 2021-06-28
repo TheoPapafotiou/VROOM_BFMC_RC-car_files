@@ -56,8 +56,8 @@ class LaneKeepingReloaded:
 
 
         #Check if frame is black
-        if frame.max() <= 0:
-            return np.array([[0,0,0],[0,0,0]])
+#         if frame.max() <= 0:
+#             return np.array([[0,0,0],[0,0,0]])
 
         #Compute peaks in the two frame halves, to get an idea of lane start positions
         histogram = None
@@ -80,11 +80,12 @@ class LaneKeepingReloaded:
 
         leftx_base = np.argmax(histogram[:int(midpoint*0.8)])
 
-        b = histogram[int(midpoint*1.2):]
+        b = histogram[int(midpoint*1.5):]
 
         b = b[::-1]
-
+ 
         rightx_base = len(b) - np.argmax(b) - 1 + midpoint
+#         rightx_base = np.argmax(b) + int(1.5*midpoint)
         
         #rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
@@ -286,7 +287,7 @@ class LaneKeepingReloaded:
 #         print("CVTColor: ", time.time() - start)
         start = time.time()
         thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-                cv2.THRESH_BINARY,(31),-56)
+                cv2.THRESH_BINARY,(31),-45) # -56
 #         ret, thresh = cv2.threshold(gray,180,255,cv2.THRESH_BINARY)
         #print("Threshold: ", time.time() - start)
         both_lanes = False

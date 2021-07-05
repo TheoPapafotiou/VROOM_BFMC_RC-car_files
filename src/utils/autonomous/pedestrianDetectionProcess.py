@@ -15,8 +15,10 @@ import multiprocessing
 from multiprocessing import Process,Event
 
 
-from src.utils.templates.workerprocess         import WorkerProcess
-from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
+from src.utils.templates.workerprocess            import WorkerProcess
+# from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
+from src.utils.autonomous.pedestrian_detection    import PedestrianDetection
+
 
 class PedestrianDetectionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -30,13 +32,18 @@ class PedestrianDetectionProcess(WorkerProcess):
             List of output pipes
         """
         super(PedestrianDetectionProcess,self).__init__(inPs, outPs)
-        self.pedDet = PedestrianHandler()
+        self.pedDet = PedestrianDetection()
         
+        self.imgSize    = (480,640,3)
+        self.imgHeight = 480
+        self.imgWidth = 640
         self.img = np.zeros((640, 480))
+        self.countFrames = 0
+        self.countFours = 0
 
     # ===================================== RUN ==========================================
     def run(self):
-        """Apply the initializers and start the threads.
+        """Apply the initializers and start the threads.    
         """
         super(PedestrianDetectionProcess,self).run()
 
@@ -50,18 +57,19 @@ class PedestrianDetectionProcess(WorkerProcess):
     # ===================================== DETECT PEDESTRIAN =============================
     def pedestrian_detector(self):
         print("Starting Pedestrian-detection thread")
-        detected_pedestrian = False
-        
+        label = "Something"
+        confidence = 0.0
+
         while True:
             try:
                 start = time.time()
                 stamps, img = self.inPs[0].recv()
-                try:
-                    detected_pedestrian = self.pedDet.detectPedestrian(img)
-                except:
-                    print("\n\n")
-                    print("Error in Pedestrian Detection PROCESS")
-                    print("\n\n")
+                # try:
+                label, confidence = self.pedDet.detectPedestrian(img, self.imgHeight, self.imgWidth)
+                # except:
+                #     print("\n\n")
+                #     print("Error in Pedestrian Detection PROCESS")
+                #     print("\n\n")
                 print("PedDetection duration: ", time.time() - start)
                 try:
                     for outP in self.outPs:

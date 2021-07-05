@@ -14,10 +14,9 @@ class PedestrianHandler:
 
         self.model = cv2.dnn.readNetFromDarknet(self.config_path, self.weights_path)
         self.layer_name = self.model.getLayerNames()
-        self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
         self.MIN_CONFIDENCE = 0.2
         self.NMS_THRESHOLD = 0.3
-
+        
         self.pedDetected = False
 
     def pedestrian_detection_procedure(self, image, personidz=0):
@@ -80,9 +79,8 @@ class PedestrianHandler:
 #             print("\n\n")
             
         image = imutils.resize(image, width=700)
-        
-        results = self.pedestrian_detection_procedure(image, personidz=self.LABELS.index("person"))
-            
+ 
+        results = pedestrian_detection_procedure(image, self.model, self.layer_name, personidz=self.LABELS.index("person"))
         for res in results:
             cv2.rectangle(image, (res[1][0],res[1][1]), (res[1][2],res[1][3]), (0, 255, 0), 2)
             self.pedDetected = True

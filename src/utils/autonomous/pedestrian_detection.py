@@ -1,19 +1,19 @@
 import cv2
 import numpy as np
 
-class SignDetection:
+class PedestrianDetection:
 
     def __init__(self):
         print("All signs init")
         self.detections = {
-            0: {
-            "class": ['ParkingSpot','Pedestrian','Ahead','HighayEnd','HighwayStart','PriorityRoad','Stop','NoEntry','Roundabout','TrafficLights'],
-            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov3_tiny-custom.cfg",r"src/utils/autonomous/weights_tiny/yolov3_tiny-custom_total.weights")
+            0:  {
+            "class": ['person'],
+            "net": cv2.dnn.readNetFromDarknet("src/utils/autonomous/yolov4_tiny.cfg",r"src/utils/autonomous/yolov4-tiny.weights")
             }  
         }
 
-    def detectSignProcedure(self, net, classes, blob, img, height, width):
-        net.setInput(blob)Handler
+    def detectPedestrianProcedure(self, net, classes, blob, img, height, width):
+        net.setInput(blob)
         output_layers_name = net.getUnconnectedOutLayersNames()
         layerOutputs = net.forward(output_layers_name)
 
@@ -46,7 +46,7 @@ class SignDetection:
                 x,y,w,h = boxes[i]
                 label = str(classes[class_ids[i]])
                 confidence = str(round(confidences[i],2))
-                print("I found a " + label + " sign with confidence " + confidence)
+                print("I found a " + label + " fuckin pink girl with confidence " + confidence)
                 color = colors[i]
                 cv2.rectangle(img,(x,y),(x+w,y+h),color,2)
                 cv2.putText(img,label + " " + confidence, (x,y+100),font,2,color,2)
@@ -55,13 +55,13 @@ class SignDetection:
         
         return "Something", 0.0
 
-    def detectSign(self, img, height, width):
+    def detectPedestrian(self, img, height, width):
         blob = cv2.dnn.blobFromImage(img, 1/255,(416,416),(0,0,0),swapRB = True,crop= False)
         cfs = 0
-        print("I'm working on the class")
+        print("I'm working on the Pedestrian class")
         label = "Something"
         confidence = 0.0
-        label, confidence = self.detectSignProcedure(
+        label, confidence = self.detectPedestrianProcedure(
             self.detections[cfs]['net'],
             self.detections[cfs]['class'],
             blob,

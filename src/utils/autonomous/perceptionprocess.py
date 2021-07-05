@@ -50,7 +50,9 @@ from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 from src.utils.autonomous.vehicleHandler       import VehicleHandler
-from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
+# from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
+from src.utils.autonomous.pedestrian_detection import PedestrianDetection
+
 
 
 class PerceptionProcess(WorkerProcess):

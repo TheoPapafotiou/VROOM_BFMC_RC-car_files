@@ -73,12 +73,11 @@ class PerceptionProcess(WorkerProcess):
         self.park = Parking()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
-        self.imgSize    = (480,640,3)
         self.imgHeight = 480
         self.imgWidth = 640
-        self.img_sign = np.zeros((640, 480))
+        self.img_sign = np.zeros((self.imgWidth, self.imgHeight))
         self.countFrames = 0
-        self.speed = 0.2
+        self.speed = 0.0
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
@@ -147,13 +146,6 @@ class PerceptionProcess(WorkerProcess):
                 stamps, img = self.inPs[0].recv()
                 #print("Time for taking the perception image: ", time.time() - start)
                 
-                # ----------------------- read image -----------------------
-                img_dims = img[:,:,0].shape
-                mask = Mask(4, img_dims)
-                mask.set_polygon(np.array([[0,460], [640,460], [546,155], [78, 155]]))
-                processed_img = hf.image_processing(img)
-                masked_img = mask.apply_to_img(processed_img)
-                
                 # ----------------------detect sign in image -----------------------
                 start = time.time()
     #                 if self.countFrames%20 == 1:
@@ -166,12 +158,13 @@ class PerceptionProcess(WorkerProcess):
                 #print("Sign detection duration: ", time.time() - start)
                 
                 start = time.time()
-                self.speed = 0.2
+                self.speed = 0.1
                 
                 #### LANE KEEPING ####
                 self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
                 #print("Lane Keeping duration: ", time.time() - start)
+                
                 if self.countFrames == 2:
                     self.sign_detected = 'ParkingSpot'
                 if self.countFrames == 3:

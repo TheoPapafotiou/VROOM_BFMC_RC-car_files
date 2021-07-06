@@ -36,6 +36,7 @@ class Parking:
         self.counter2 = 0
         self.counter3 = 0
         self.part = [False, False, False, False, False, False, False, False]
+        self.cond_ver = 7
         self.correction = False
         self.correction_counter = 0
         self.prepared = False
@@ -122,48 +123,48 @@ class Parking:
            
         ### Check the part of the parking procedure
         if yaw <= yaw_init + self.margin or yaw >= yaw_init + 360 - self.margin and self.part[0] is False: #Turn left and forward
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[0] = True
 
         elif yaw <= (yaw_init + 360 - self.kappa_ver + self.margin) and yaw >= (yaw_init + 360 - self.kappa_ver - self.margin) and self.part[0] is True: #Turn right and backwards
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[1] = True
 
         elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[1] is True: #Correct parking
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[2] = True
 
         elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[2] is True and self.correction is True: #Wait a little
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[3] = True
             self.correction = False
             self.counter1 = 0
 
         elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[3] is True and self.forward_prepare is True: #Forward, being prepared for going out 
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[4] = True
             self.forward_prepare = False
             self.counter2 = 0
 
         elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[4] is True and self.prepared is True: #Turn right and forward
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[5] = True
             self.prepared = False
             self.counter3 = 0
             
         elif yaw >= (yaw_init + 360 - self.omega_ver) and self.part[5] is True: #Turn more right until 
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[6] = True
 
         elif yaw <= yaw_init + self.margin and yaw >= yaw_init + 360 - self.margin and self.part[6] is True: 
-            for i in range(0, 7):
+            for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[0] = True
             flag = False

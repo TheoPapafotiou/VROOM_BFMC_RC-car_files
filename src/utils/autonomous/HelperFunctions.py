@@ -1,12 +1,17 @@
-#HelperFunctions class: A class that contains helper functions for lane detection and keeping.
 import numpy as np
 import cv2
 import logging
 import math
-from src.utils.autonomous.Line                 import Line
-from src.utils.autonomous.Mask                 import Mask
+from src.utils.autonomous.Line import Line
+from src.utils.autonomous.Mask import Mask
+
+"""
+    This class implements important helper functions used in the lane detection and keeping algorithm.
+"""
 
 class HelperFunctions:
+
+    
 
     #Returns the image with hough lines drawn on top.
     #@args:
@@ -44,10 +49,8 @@ class HelperFunctions:
         # However, the angles calculated here are in the range of 0 - 180
         #(x1,y1) are always center of the screen
         #(x2,y2) calculated with trig
-        #print("Angle inside heading line: " + str(steering_angle))
         steering_angle_radian = steering_angle / 180.0 * math.pi
         
-        #print("Angle inside heading line radian: " + str(steering_angle_radian))
         if(steering_angle == 0 or abs(steering_angle) == 90):
             x1 = int(width / 2)
             y1 = height
@@ -58,7 +61,6 @@ class HelperFunctions:
             y1 = height
             x2 = int(x1 + (height / 2) / math.tan((math.pi/2) - steering_angle_radian))
             y2 = int(height / 2)
-            #print("X2 is: " + str(x2))
         elif(steering_angle_radian < 0):
             x2 = int(width/2)
             x1 = int(x2 - (height/2)/math.tan((math.pi/2)+steering_angle_radian))
@@ -235,18 +237,16 @@ class HelperFunctions:
                     #In each case based on slope and x coordinates, append the segment to the correct half of the frame
                     if (slope is None):
                         if x1 < left_region_boundary: #and x2 < left_region_boundary:
-                            left_fit.append(line_segment)     
+                            #left_fit.append(line_segment)     
+                            pass
                         if x2 > right_region_boundary: #and x1 > right_region_boundary:
-                            right_fit.append(line_segment)                         
+                            right_fit.append(line_segment)                  
                     elif slope < 0:
                         if x1 < left_region_boundary: #and x2 < left_region_boundary:
                             left_fit.append(line_segment)
                     elif slope > 0:
                         if x2 > right_region_boundary:# and x2 > right_region_boundary:
-                            right_fit.append(line_segment)
-        
-                
-        
+                            right_fit.append(line_segment)    
 
         #left_fit_average = np.average(left_fit, axis=0)
         if len(left_fit) > 0:
@@ -302,11 +302,11 @@ class HelperFunctions:
                 else: 
                     slope = float(y2 - y1) / float(x2 - x1) 
                     segment2centerX = (x1 + x2) / 2.0
-                    if line_width > 80:    
-                        if math.fabs(slope) < 0.1 and math.fabs(segment2centerX - (width / 2.0)) < 40:
-                            if max(y1,y2) > intersection_boundary: #and y2 > intersection_boundary:
-                                horizontal_lines.append(line_segment)
-                                continue
+   
+                    if math.fabs(slope) < 0.1 and math.fabs(segment2centerX - (width / 2.0)) < 40:
+                        if max(y1,y2) > intersection_boundary: #and y2 > intersection_boundary:
+                            horizontal_lines.append(line_segment)
+                            continue
 
 
         
@@ -315,7 +315,6 @@ class HelperFunctions:
         if(len(horizontal_lines) > 0):
             horizontal_line = HelperFunctions.make_line_from_segments(horizontal_lines)
             hor_img = HelperFunctions.get_hough_img(frame, horizontal_line, R=255, G=0, B=0)
-            #cv2.imshow("Hor_line", hor_img)
         
         return horizontal_line
 
@@ -368,22 +367,21 @@ class HelperFunctions:
                     #if math.fabs(slope) < 0.5:
                     #    continue
 
-                
+                #Restrict detection to the lower half of the frame, and make an additional check for horizontal lines (if the deltaY is bigger than 10)
                 if y1 > upper_boundary and y2 > upper_boundary and np.abs(y2-y1) > 10:
+                    #In each case based on slope and x coordinates, append the segment to the correct half of the frame
                     if (slope is None):
-                        if x1 < left_region_boundary and x2 < left_region_boundary:
+                        if x1 < left_region_boundary: #and x2 < left_region_boundary:
                             left_fit.append(line_segment)     
-                        if x1 > right_region_boundary and x2 > right_region_boundary:
-                            right_fit.append(line_segment)   
-                        else:
-                            continue                       
-                    #elif slope < 0:
-                    elif x1 < left_region_boundary: #and x2 < left_region_boundary:
-                        left_fit.append(line_segment)
-                    #elif slope != 0:
-                    elif x1 > right_region_boundary: #and x1 > right_region_boundary:
-                        right_fit.append(line_segment)
-
+                        if x2 > right_region_boundary: #and x1 > right_region_boundary:
+                            right_fit.append(line_segment)                         
+                    elif slope < 0:
+                        if x1 < left_region_boundary: #and x2 < left_region_boundary:
+                            left_fit.append(line_segment)
+                    elif slope > 0:
+                        if x2 > right_region_boundary:# and x2 > right_region_boundary:
+                            right_fit.append(line_segment)
+        
 
         right_img = HelperFunctions.get_hough_img(frame, right_fit, R=255, G=0, B=0)
         left_img = HelperFunctions.get_hough_img(right_img, left_fit)
@@ -391,41 +389,47 @@ class HelperFunctions:
         return left_img
 
 
-#NIKOS INTERSECTION
+# INTERSECTION
     @staticmethod
     def distance2intersection(horizontal_line, frame):
         height, width, i = frame.shape
         horizontal_image = []
         found_intersection = False
         vector2intersection = []
-        dist2intersection = []
+        dist2intersection = float('inf')
 
+        img = frame.copy()
         if((horizontal_line) != None):
             coordinates = horizontal_line.get_endpoints()
             for x1, y1, x2, y2 in coordinates:
                 
-                intersection_centerX = (x1 + x2) / 2
-                intersection_centerY = (y1 + y2) / 2
-                center = width / 2
-                #print("Inter X: ", intersection_centerX)
-                #print("Inter X: ", intersection_centerX)
+                intersection_centerX = int(width / 2.0) #(x1 + x2) / 2
+                intersection_centerY = int((y1 + y2) / 2.0)
+                center = int(width / 2.0)
 
                 dist2intersection = np.sqrt((math.pow((center-intersection_centerX),2)+ math.pow((height-intersection_centerY),2)))
-                # print(dist2intersection)
                 vector2intersection = np.array([center, height, intersection_centerX, intersection_centerY])
-                #img = frame.copy()
+                
+                img = frame.copy()
 
                 cv2.line(img, (center, height), (intersection_centerX, intersection_centerY), (0, 0, 255), 10)
 
-                #cv2.imshow("DISTANCE", img)
-
-                #print(dist2intersection)
-                #print(vector2intersection)
-
+                font                   = cv2.FONT_HERSHEY_SIMPLEX
+                textPosition           = (10,50)
+                fontScale              = 1
+                fontColor              = (255,0,0)
+                lineType               = 2
+                
+                cv2.putText(img,'Distance: ' + str(dist2intersection), 
+                textPosition, 
+                font, 
+                fontScale,
+                fontColor,
+                lineType)
 
                 found_intersection = True
 
-        return dist2intersection, found_intersection
+        return dist2intersection, found_intersection, img
 
     @staticmethod
     def stop_procedure(horizontal_line, frame):
@@ -449,7 +453,6 @@ class HelperFunctions:
             frame_counter = 0
 
         if (seconds_running <= delay_sec):
-            print(seconds_running)
             # True because we are waiting at the intersection
             return True
         else:
@@ -474,5 +477,4 @@ class HelperFunctions:
 
         # Output Value
         outputValue = P + I
-        print('P: ', P, 'I: ', I, 'Output Value: ', outputValue )
         return outputValue

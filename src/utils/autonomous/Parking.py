@@ -113,9 +113,9 @@ class Parking:
 
         return self.speed, self.angle, flag
 
-    def parking_vertical(self, yaw_init, yaw, flag):
+    def parking_vertical(self, yaw_init, yaw, flag, horizontal_line):
                 
-        if self.counter1 == 2:
+        if horizontal_line is True and self.part[2] is True:
             self.correction = True
 
         if self.counter2 == 15:
@@ -156,7 +156,6 @@ class Parking:
                 self.part[i] = False
             self.part[3] = True
             self.correction = False
-            self.counter1 = 0
 
         elif self.part[3] is True and self.forward_prepare is True: #Forward, being prepared for going out 
             for i in range(0, self.cond_ver):
@@ -183,14 +182,13 @@ class Parking:
         elif (yaw >= yaw_init + 360 - self.margin_L or \
              yaw <= yaw_init + self.margin_L) and \
              self.part[6] is True:
-            print("I'M HERE MOTHERFUCKER")
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[0] = True
             self.flag = False
 
         ### Calculate the speed and angle
-        print("Flag: ", self.flag)
         if self.part[0] is True and self.flag is True:
             print("Part 1")
             self.angle = self.theta_ver
@@ -205,7 +203,6 @@ class Parking:
             print("Part 3")
             self.angle = 0
             self.speed = -self.min_speed
-            self.counter1 += 1
 
         elif self.part[3] is True and self.flag is True:
             print("Part 4")

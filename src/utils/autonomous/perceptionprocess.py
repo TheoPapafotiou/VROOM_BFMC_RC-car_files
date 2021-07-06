@@ -74,6 +74,7 @@ class PerceptionProcess(WorkerProcess):
         self.imgHeight = 480
         self.imgWidth = 640
         self.img_sign = np.zeros((self.imgWidth, self.imgHeight))
+        self.horizontal_img = np.zeros((self.imgWidth, self.imgHeight))
         self.countFrames = 0
         self.speed = 0.0
         self.intersection_navigation = False
@@ -92,6 +93,9 @@ class PerceptionProcess(WorkerProcess):
         self.count_steps = 0
         self.max_count_steps = 0
         self.yaw_init = 0
+        self.polygon_array = np.array([[0,460], [640,460], [546,260], [78, 260]])
+        self.hor_detect_limit = 160
+        self.horizontal_line = False
         
         global IMU
         signal.signal(signal.SIGTERM, self.exit_handler)
@@ -142,8 +146,24 @@ class PerceptionProcess(WorkerProcess):
                 print("Yaw is: ", yaw)
 
                 stamps, img = self.inPs[0].recv()
+                self.horizontal_img = img
                 #print("Time for taking the perception image: ", time.time() - start)
+                # ---------------------process frame ------------------------------
+                img_dims = img[:,:,0].shape
+                mask = Mask(4, img_dims)
+                mask.set_polygon_points(self.polygon_array)
+                processed_img = hf.image_processing(img)
+                masked_img = mask.apply_to_img(processed_img)
                 
+                # ----------------------detect horizontal line ---------------------
+                self.horizontal_line = False
+                line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
+                horizontal_line = hf.horizontal_line_detector(img, line_segments)
+                distance_hor, detected_hor_line, self.horizontal_img = hf.distance2intersection(horizontal_line, img)
+                print("Distance: ", distance_hor)
+                if distance_hor < self.hor_detect_limit:
+                    self.horizontal_line = True
+
                 # ----------------------detect sign in image -----------------------
                 start = time.time()
     #                 if self.countFrames%20 == 1:
@@ -190,9 +210,11 @@ class PerceptionProcess(WorkerProcess):
                 if self.parking_initiated is True:
                     print('#'*20)
                     if self.parking_type == 'vertical':
-                        self.speed, self.curr_steering_angle, self.parking_initiated = self.park.parking_vertical(self.yaw_init, yaw, self.parking_initiated)
+                        self.speed, self.curr_steering_angle, self.parking_initiated = \
+                                            self.park.parking_vertical(self.yaw_init, yaw, self.parking_initiated, self.horizontal_line)
                     else:
-                        self.speed, self.curr_steering_angle, self.parking_initiated = park.parking_horizontal(self.yaw_init, yaw, img, self.parking_initiated)
+                        self.speed, self.curr_steering_angle, self.parking_initiated = \
+                                            self.park.parking_horizontal(self.yaw_init, yaw, img, self.parking_initiated)
                     print(self.speed, self.curr_steering_angle, self.parking_initiated)
 
                 #### NORMALIZE ANGLE ####
@@ -203,7 +225,7 @@ class PerceptionProcess(WorkerProcess):
                 
                 #### SEND RESULTS (image, perception) ####
                 perception_results = [self.curr_steering_angle, self.speed]
-                self.outPs[0].send([[stamps], img])
+                self.outPs[0].send([[stamps], self.horizontal_img])
                 start_time_command = time.time()
                 self.outPs[1].send([perception_results, start_time_command])
                 

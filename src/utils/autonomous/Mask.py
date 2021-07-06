@@ -1,8 +1,13 @@
-#Mask Class: A class tha represents a mask for the images, and therefore the FOV of the car.
-
 import numpy as np
 import cv2
+import math
+
+"""
+This class represents a mask for the images, and therefore the FOV of the car.
+"""
+
 class Mask:
+    
     #The points that represent the mask's shape, in the form of np array [x0,y0,x1,y1,x2,y2...]
     polygon = []
 
@@ -40,13 +45,25 @@ class Mask:
     #Sets the polygon to the inputted polygon.
     #@args:
     #polygon_points: The points of the polygon.
-    def set_polygon(self, polygon_points):
+    def set_polygon(self, height, width, angle_deg):
+        half_height = int(height/2)
+        angle_rad = math.radians(angle_deg)
+
+        a = [0, height]
+        b = [width, height]
+        
+        x_d = int(float(half_height) / math.tan(angle_rad))
+        x_c = width - x_d
+
+        c = [x_c, half_height]
+        d = [x_d, half_height]
+
+        polygon_points = np.array([a, b, c, d])
+        
         self.polygon = np.copy(polygon_points)
-
-
-
    
 
 
+    def set_polygon_points(self, points):
 
-
+        self.polygon = np.copy(points)

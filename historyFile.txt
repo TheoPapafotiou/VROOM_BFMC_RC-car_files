@@ -131,10 +131,6 @@
 #MCTL:0.00;0.00;;
 @MCTL:ack;;
 #MCTL:0.00;0.00;;
-@MCTL:ack;;
-#MCTL:0.00;0.00;;
-@MCTL:ack;;
-#MCTL:0.00;0.00;;
 #MCTL:0.00;0.00;;
 @MCTL:ack;;
 @MCTL:ack;;

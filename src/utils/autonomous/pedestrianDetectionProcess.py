@@ -44,17 +44,16 @@ class PedestrianDetectionProcess(WorkerProcess):
     def _init_threads(self):
         """Initialize the pedestrianDetection thread to receive the video.
         """
-        pedTh = Thread(name = 'PedestrianDetectionThread',target = self.pedestrian_detector)
+        pedTh = Thread(name = 'PedestrianDetectionThread',target = self._pedestrian_detector)
         self.threads.append(pedTh)
         
     # ===================================== DETECT PEDESTRIAN =============================
-    def pedestrian_detector(self):
+    def _pedestrian_detector(self):
         print("Starting Pedestrian-detection thread")
         detected_pedestrian = False
         
         while True:
             try:
-                start = time.time()
                 stamps, img = self.inPs[0].recv()
                 try:
                     detected_pedestrian = self.pedDet.detectPedestrian(img)
@@ -62,7 +61,6 @@ class PedestrianDetectionProcess(WorkerProcess):
                     print("\n\n")
                     print("Error in Pedestrian Detection PROCESS")
                     print("\n\n")
-                print("PedDetection duration: ", time.time() - start)
                 try:
                     for outP in self.outPs:
                         outP.send([[stamps], img])

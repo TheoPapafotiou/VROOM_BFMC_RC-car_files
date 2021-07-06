@@ -50,8 +50,6 @@ from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 from src.utils.autonomous.vehicleHandler       import VehicleHandler
-from src.utils.autonomous.pedestrianHandler    import PedestrianHandler
-
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -136,21 +134,21 @@ class PerceptionProcess(WorkerProcess):
 
                 # ----------------------detect pedestrian in image --------------------
                 start = time.time()
-                if self.countFrames%30 == 2:
+                if self.countFrames%20 == 2:
                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                     self.outPs[4].send([[stamps], img])
                     print("Frame sent for pedestrian")
                 
-                if self.countFrames%30 == 0:
+                if self.countFrames%20 == 19:
                     stamps, self.img_pedestrian = self.inPs[3].recv()
-                #print("Pedestrian Detection duration: ", time.time() - start)
+                print("Pedestrian Detection duration: ", time.time() - start)
                 
                 # ----------------------lane keeping -----------------------
                 start = time.time()
                 self.speed = 0.0
 
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
-                self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
+                #self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 
                 self.curr_steering_angle *= self.angle_factor
 

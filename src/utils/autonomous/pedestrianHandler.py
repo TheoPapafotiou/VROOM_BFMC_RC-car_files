@@ -13,22 +13,26 @@ class PedestrianHandler:
         self.config_path = "src/utils/autonomous/yolov4-tiny.cfg"
 
         self.model = cv2.dnn.readNetFromDarknet(self.config_path, self.weights_path)
-        self.layer_name = self.model.getLayerNames()
-        self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
+#         self.layer_name = self.model.getLayerNames()
+#         self.layer_name = [self.layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
         self.MIN_CONFIDENCE = 0.2
         self.NMS_THRESHOLD = 0.3
 
         self.pedDetected = False
 
     def pedestrian_detection_procedure(self, image, personidz=0):
-
+                
         (H, W) = image.shape[:2]
         results = []
 
         blob = cv2.dnn.blobFromImage(image, 1 / 255.0, (416, 416),
             swapRB=True, crop=False)
         self.model.setInput(blob)
-        layerOutputs = self.model.forward(self.layer_name)
+        
+        layer_name = self.model.getLayerNames()
+        layer_name = [layer_name[i[0] - 1] for i in self.model.getUnconnectedOutLayers()]
+        
+        layerOutputs = self.model.forward(layer_name)
 
         boxes = []
         centroids = []
@@ -86,6 +90,7 @@ class PedestrianHandler:
         for res in results:
             cv2.rectangle(image, (res[1][0],res[1][1]), (res[1][2],res[1][3]), (0, 255, 0), 2)
             self.pedDetected = True
+            
         print("PedDetected: ", self.pedDetected)
             
         return self.pedDetected 

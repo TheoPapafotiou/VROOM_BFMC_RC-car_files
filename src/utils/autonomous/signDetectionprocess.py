@@ -17,7 +17,6 @@ from multiprocessing import Process,Event
 
 from src.utils.templates.workerprocess         import WorkerProcess
 from src.utils.autonomous.sign_detection       import SignDetection
-from src.utils.autonomous.ped_detection        import PedestrianDetection
 
 
 class SignDetectionProcess(WorkerProcess):
@@ -35,13 +34,6 @@ class SignDetectionProcess(WorkerProcess):
         """
         super(SignDetectionProcess,self).__init__(inPs, outPs)
         self.signDet = SignDetection()
-        #self.signDet = SignThread()
-        self.pedDet = PedestrianDetection()
-        #self.tracker = cv2.TrackerMOSSE_create()    # high speed, low accuracy
-        #self.tracker = cv2.TrackerCSRT_create()      # low speed, high accuracy
-        #self.shapesDet = ShapesDetection()
-        #self.port       =   2244
-        #self.serverIp   =   '0.0.0.0'
         
         self.imgSize    = (480,640,3)
         self.imgHeight = 480

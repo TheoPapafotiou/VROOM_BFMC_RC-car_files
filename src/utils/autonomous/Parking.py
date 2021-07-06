@@ -27,11 +27,13 @@ class Parking:
         self.kappa_ver = 28
         self.ro_ver = 23
         
-        self.margin = 5
-        self.speed = 0.2
+        self.margin_L = 5
+        self.margin_M = 3
+        self.margin_S = 1
+        self.speed = 0.1
         self.angle = 0.0
         self.park_dist = 20
-        self.min_speed = 0.2
+        self.min_speed = 0.1
         self.counter1 = 0
         self.counter2 = 0
         self.counter3 = 0
@@ -41,6 +43,7 @@ class Parking:
         self.correction_counter = 0
         self.prepared = False
         self.forward_prepare = False
+        self.flag = False
 
     def parking_horizontal(self, yaw_init, yaw, frame, flag):
         
@@ -112,102 +115,120 @@ class Parking:
 
     def parking_vertical(self, yaw_init, yaw, flag):
                 
-        if self.counter1 == 4:
+        if self.counter1 == 2:
             self.correction = True
 
-        if self.counter2 == 4:
+        if self.counter2 == 15:
             self.forward_prepare = True
 
-        if self.counter3 == 1:
+        if self.counter3 == 2:
             self.prepared = True
+            
+        self.flag = flag
            
         ### Check the part of the parking procedure
-        if yaw <= yaw_init + self.margin or yaw >= yaw_init + 360 - self.margin and self.part[0] is False: #Turn left and forward
+        if (yaw <= yaw_init + self.margin_L or \
+           yaw >= yaw_init + 360 - self.margin_L) and \
+           self.part[0] is False and \
+           self.part[6] is False: #Turn left and forward
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[0] = True
 
-        elif yaw <= (yaw_init + 360 - self.kappa_ver + self.margin) and yaw >= (yaw_init + 360 - self.kappa_ver - self.margin) and self.part[0] is True: #Turn right and backwards
+        elif yaw <= (yaw_init + 360 - self.kappa_ver + self.margin_L) and \
+             yaw >= (yaw_init + 360 - self.kappa_ver - self.margin_L) and \
+             self.part[0] is True: #Turn right and backwards
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[1] = True
 
-        elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[1] is True: #Correct parking
+        elif yaw <= (yaw_init + 270 + self.margin_L) and \
+             self.part[1] is True: #Correct parking
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[2] = True
 
-        elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[2] is True and self.correction is True: #Wait a little
+        elif self.part[2] is True and self.correction is True: #Wait a little
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[3] = True
             self.correction = False
             self.counter1 = 0
 
-        elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[3] is True and self.forward_prepare is True: #Forward, being prepared for going out 
+        elif self.part[3] is True and self.forward_prepare is True: #Forward, being prepared for going out 
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[4] = True
             self.forward_prepare = False
             self.counter2 = 0
 
-        elif yaw <= (yaw_init + 270 + self.margin) and yaw >= (yaw_init + 270 - self.margin) and self.part[4] is True and self.prepared is True: #Turn right and forward
+        elif self.part[4] is True and self.prepared is True: #Turn right and forward
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[5] = True
             self.prepared = False
             self.counter3 = 0
             
-        elif yaw >= (yaw_init + 360 - self.omega_ver) and self.part[5] is True: #Turn more right until 
+        elif yaw >= (yaw_init + 360 - self.omega_ver) and \
+             self.part[5] is True: #Turn more right until
+            
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[6] = True
 
-        elif yaw <= yaw_init + self.margin and yaw >= yaw_init + 360 - self.margin and self.part[6] is True: 
+        elif (yaw >= yaw_init + 360 - self.margin_L or \
+             yaw <= yaw_init + self.margin_L) and \
+             self.part[6] is True:
+            print("I'M HERE MOTHERFUCKER")
             for i in range(0, self.cond_ver):
                 self.part[i] = False
             self.part[0] = True
-            flag = False
+            self.flag = False
 
         ### Calculate the speed and angle
-        if self.part[0] is True:
+        print("Flag: ", self.flag)
+        if self.part[0] is True and self.flag is True:
             print("Part 1")
             self.angle = self.theta_ver
             self.speed = self.min_speed
 
-        elif self.part[1] is True:
+        elif self.part[1] is True and self.flag is True:
             print("Part 2")
             self.angle = self.phi_ver
             self.speed = -self.min_speed
 
-        elif self.part[2] is True:
+        elif self.part[2] is True and self.flag is True:
             print("Part 3")
             self.angle = 0
             self.speed = -self.min_speed
             self.counter1 += 1
 
-        elif self.part[3] is True:
+        elif self.part[3] is True and self.flag is True:
             print("Part 4")
             self.angle = 0
             self.speed = 0
             self.counter2 += 1
 
-        elif self.part[4] is True:
+        elif self.part[4] is True and self.flag is True:
             print("Part 5")
             self.angle = 0
             self.speed = self.min_speed
             self.counter3 += 1
         
-        elif self.part[4] is True:
+        elif self.part[5] is True and self.flag is True:
             print("Part 6")
             self.angle = self.phi_ver
             self.speed = self.min_speed
         
-        elif self.part[5] is True:
+        elif self.part[6] is True and self.flag is True:
             print("Part 7")
             self.angle = self.ro_ver
             self.speed = self.min_speed
         else:
             print("No part")
                         
-        return self.speed, self.angle, flag
+        return self.speed, self.angle, self.flag

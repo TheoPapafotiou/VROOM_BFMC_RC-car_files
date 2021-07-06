@@ -43,7 +43,6 @@ import multiprocessing
 from multiprocessing import Process,Event
 
 from src.utils.templates.workerprocess         import WorkerProcess
-from src.utils.autonomous.ped_detection        import PedestrianDetection
 from src.utils.autonomous.shapes_detection     import ShapesDetection
 from src.utils.autonomous.Line                 import Line
 from src.utils.autonomous.Mask                 import Mask
@@ -69,7 +68,6 @@ class PerceptionProcess(WorkerProcess):
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
         #self.signDet = SignDetection()
-        self.pedDet = PedestrianDetection()
         self.park = Parking()
         self.lane_keeping = LaneKeepingReloaded(640, 480)
         
@@ -159,9 +157,9 @@ class PerceptionProcess(WorkerProcess):
                 
                 start = time.time()
                 self.speed = 0.1
-                
+                self.curr_steering_angle = 0.0
                 #### LANE KEEPING ####
-                self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
+                #self.curr_steering_angle, both_lanes, lane_frame = self.lane_keeping.lane_keeping_pipeline(img)
                 
                 #print("Lane Keeping duration: ", time.time() - start)
                 
@@ -179,7 +177,7 @@ class PerceptionProcess(WorkerProcess):
                     #     self.parking_type = "horizontal"
                     self.parking_type = "vertical"
 
-                    self.max_count_steps = 3#11#distance*self.norm_factor
+                    self.max_count_steps = 10#11#distance*self.norm_factor
                     self.count_steps = 0
                     self.parking_ready = True
 
@@ -190,11 +188,12 @@ class PerceptionProcess(WorkerProcess):
                     self.parking_ready = False
 
                 if self.parking_initiated is True:
-                    if parking_type == 'vertical':
+                    print('#'*20)
+                    if self.parking_type == 'vertical':
                         self.speed, self.curr_steering_angle, self.parking_initiated = self.park.parking_vertical(self.yaw_init, yaw, self.parking_initiated)
                     else:
                         self.speed, self.curr_steering_angle, self.parking_initiated = park.parking_horizontal(self.yaw_init, yaw, img, self.parking_initiated)
-                    print(self.speed, self.curr_steering_angle)
+                    print(self.speed, self.curr_steering_angle, self.parking_initiated)
 
                 #### NORMALIZE ANGLE ####
                 if self.curr_steering_angle >= 25:

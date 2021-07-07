@@ -16,12 +16,14 @@ class LaneKeepingReloaded:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        wT, hT, wB,hB = 0.1*self.width, 0.5*self.height, 0, 0.8*self.height
+        wT, hT, wB,hB = 0.15*self.width, 0.6*self.height, 0, 0.8*self.height #0.05*self.width
         # wT, hT, wB,hB = 70, 350, 0, 443
         self.src_points = np.float32([[wT, hT],[width - wT, hT], [wB, hB], [width - wB, hB]])
         self.warp_matrix = None
         self.inv_warp_matrix = None
         self.angle = 0.0
+        
+        self.cache = [None,None]
 
     def warp_image(self, frame):
 
@@ -63,7 +65,7 @@ class LaneKeepingReloaded:
         histogram = None
         
         cutoffs = [int(self.height / 2.0), 0]
-
+        out = np.dstack((frame, frame, frame)) * 255
         for cutoff in cutoffs:
             histogram = np.sum(frame[cutoff:,:], axis=0)
 
@@ -72,26 +74,37 @@ class LaneKeepingReloaded:
         
         if histogram.max() == 0:
             #print('Unable to detect lane lines in this frame. Trying another frame!')
-            return (None, None)
+            return np.array([None, None, out])
 
         #Calculate peaks of histogram
 
         midpoint = np.int(self.width / 2.0)
+        left_factor = 1
+        right_factor = 1
+        print(self.angle)
+        #if self.angle > 15:
+        #    left_factor = 1.5
+         #   right_factor = 1.5
+       # if self.angle < -15:
+         #   left_factor = 0.5
+        #    right_factor = 0.5
 
-        leftx_base = np.argmax(histogram[:int(midpoint*0.8)])
-
-        b = histogram[int(midpoint*1.5):]
+        leftx_base = np.argmax(histogram[:int(midpoint*left_factor)])
+                   
+        print("Left base: ", left_factor)
+        right_mid = int(midpoint*right_factor)
+        b = histogram[int(right_mid):]
 
         b = b[::-1]
  
-        rightx_base = len(b) - np.argmax(b) - 1 + midpoint
+        rightx_base = len(b) - np.argmax(b) - 1 + right_mid
 #         rightx_base = np.argmax(b) + int(1.5*midpoint)
         
-        #rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+        
 
-        print("Rightmost: ", rightx_base)
+        print("Rightmost: ", right_mid)
         #Black image to draw on -VIS-
-        out = np.dstack((frame, frame, frame)) * 255
+        #out = np.dstack((frame, frame, frame)) * 255
 
         #Number of sliding windows
         windows_number = 12 #πόσα παραθυράκια θα κάνει για να σκανάρει όλη την εικόνα
@@ -121,7 +134,8 @@ class LaneKeepingReloaded:
         left_lane_inds = []
         right_lane_inds = []
         
-        if abs(rightx_base - leftx_base) > (self.width//10):
+        print("DIFF: ", rightx_base - leftx_base,  " THRESH: " ,self.width//5 )
+        if abs(rightx_base - leftx_base) > (self.width//5):
             for window in range(windows_number):
                 #Find window boundaries in x and y axis
                 win_y_low = self.height - (1 + window) * window_height
@@ -159,9 +173,11 @@ class LaneKeepingReloaded:
 
                 if len(good_right_inds) > minpix:
                     rightx_current = int(np.mean(nonzerox[good_right_inds]))
-
-        left_lane_inds = np.concatenate(left_lane_inds)
-        right_lane_inds = np.concatenate(right_lane_inds)
+    
+        if len(left_lane_inds) > 0:
+            left_lane_inds = np.concatenate(left_lane_inds)
+        if len(right_lane_inds) > 0:
+            right_lane_inds = np.concatenate(right_lane_inds)
 
         # Extract pixel positions for the left and right lane lines
         leftx = nonzerox[left_lane_inds]
@@ -185,23 +201,7 @@ class LaneKeepingReloaded:
         if len(rightx) >= min_lane_pts:# and histogram[rightx_base] != 0:
             right_fit = np.polyfit(righty, rightx, 2)
         print("Left fit VS Right fit: ", left_fit is not None, right_fit is not None)
-        '''
-        # Validate detected lane lines
-        valid = True#self.check_validity(left_fit, right_fit)
-    
-        if not valid:
-            # If the detected lane lines are NOT valid:
-            # 1. Compute the lane lines as an average of the previously detected lines
-            # from the cache and flag this detection cycle as a failure by setting ret=False
-            # 2. Else, if cache is empty, return 
-            
-            if len(cache) == 0:
-                return np.array([[0,0,0],[0,0,0]])
-            
-            avg_params = np.mean(cache, axis=0)
-            left_fit, right_fit = avg_params[0], avg_params[1]
-            #ret = False
-        '''
+        
         # Color the detected pixels for each lane line
         out[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         out[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [255, 10, 255]
@@ -295,23 +295,31 @@ class LaneKeepingReloaded:
         start = time.time()
         left, right, out = self.polyfit_sliding_window(thresh)
         #print("Polyfit: ", time.time() - start)
-
+        
+        if left is None and self.cache[0] is not None:
+            left = self.cache[0]
+        if right is None and self.cache[1] is not None:
+            right = self.cache[1]
+            
         if left is not None and right is not None:
             print("BOTH LANES")
-            start = time.time()
+            
+            self.cache[0] = left
+            self.cache[1] = right
+            #start = time.time()
             left_x, left_y, right_x, right_y = self.get_poly_points(left, right)
 #             print("Poly points: ", time.time() - start)
-            cache = [left,right]
+ 
             
-            start = time.time()
+            #start = time.time()
             poly_image = self.plot_points(left_x, left_y,right_x, right_y, warped)
 #             print("Plot points: ", time.time() - start)
             
-            start = time.time()
+            #start = time.time()
             error, setpoint = self.get_error(left_x, left_y,right_x, right_y)
             print("GetError: ", time.time() - start)
             
-            nose2wheel = self.height//2
+            nose2wheel = self.height//10
 
             self.angle = 90 - math.degrees(math.atan2(nose2wheel, error))
             both_lanes = True
@@ -320,12 +328,13 @@ class LaneKeepingReloaded:
 
         elif right is None and left is not None:
             print("LEFT LANE")
+            self.cache[0] = left
 
             x1 = left[0] * self.height ** 2 + left[1] * self.height + left[2]
             x2 = left[2]
 
             dx = math.fabs(x2 - x1)
-            dy = self.height//2
+            dy = self.height//8
 
             #tan = float(dy) / float(dx) 
 
@@ -335,12 +344,12 @@ class LaneKeepingReloaded:
         
         elif left is None and right is not None:
             print("RIGHT LANE")
-
+            self.cache[1] = right
             x1 = right[0] * self.height ** 2 + right[1] * self.height + right[2]
             x2 = right[2]
 
             dx = math.fabs(x2 - x1)
-            dy = self.height//2
+            dy = self.height//8
 
             #tan = float(dy) / float(dx) 
 

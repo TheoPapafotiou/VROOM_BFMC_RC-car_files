@@ -136,8 +136,8 @@ class PerceptionProcess(WorkerProcess):
                 self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 self.curr_steering_angle *= self.angle_factor
                     
-                if self.curr_steering_angle > 15:
-                    self.speed = 0.1#
+                if abs(self.curr_steering_angle) > 12:
+                    self.speed = 0.13
                 
 #                 print("Lane Keeping duration: ", time.time() - start)
                 

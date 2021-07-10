@@ -50,6 +50,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
+from src.utils.autonomous.Overtake             import OvertakeProcedure
 
 
 class PerceptionProcess(WorkerProcess):
@@ -67,17 +68,24 @@ class PerceptionProcess(WorkerProcess):
         """
         super(PerceptionProcess,self).__init__(inPs, outPs)
         self.lane_keeping = LaneKeepingReloaded(320, 240)
+        self.overtake = OvertakeProcedure()
         
         self.imgHeight = 480
         self.imgWidth = 640
-        self.img_sign = np.zeros((self.imgWidth, self.imgHeight))
-        self.label = None
-        self.countFrames = 0
         self.speed = 0.0
         self.intersection_navigation = False
         self.found_intersection = False
         self.curr_steering_angle = 0
         self.angle_factor = 23.0/90
+
+        ## Overtake Parameters ##
+
+        self.vehicle_detected = True
+        self.overtake_flag = False 
+        self.dotted_line = True
+        self.lane_keeping_flag = False
+        self.lane_keeping_angle = 0
+
         
     # ===================================== RUN ==========================================
     def run(self):
@@ -87,7 +95,7 @@ class PerceptionProcess(WorkerProcess):
 
     # ===================================== INIT THREADS =================================
     def _init_threads(self):
-        """Initialize the read thread to receive the video.
+        """Initialize the                if self.sign_detected == 'ParkingSpot' and self.parking_ready is False and self.parking_initiated is False:if self.sign_detected == 'ParkingSpot' and self.parking_ready is False and self.parking_initiated is False:read thread to receive the video.
         """
         readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
@@ -107,40 +115,43 @@ class PerceptionProcess(WorkerProcess):
         while True:
             try:
                 start = time.time()
-                self.countFrames += 1
                 stamps, img = self.inPs[0].recv()
-#                 print("&"*20)
-#                 print("Time for the transfer of the perception image: ", time.time() - stamps[0])
-#                 print("&"*20) 
-                 
-                if self.label is None:
-                    self.img_sign = img
-                
-                # ----------------------detect sign in image -----------------------
-#                 start = time.time()
-#                 if self.countFrames%10 == 1:
-#                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-#                     self.outPs[2].send([[stamps], img_bgr])
-#                 
-#                 elif self.countFrames%10 == 0:
-#                    stamps, self.img_sign, self.label = self.inPs[1].recv()
-#                    print("\n===========\n", self.label, "\n===========\n")
-#                 print("Sign Detection Duration: ", time.time() - start)
-                
+                            
                 start = time.time()
                 
-#                 if self.label is not None:
-#                     self.speed = 0.0
                 self.speed = 0.08
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
-                self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
-                self.curr_steering_angle *= self.angle_factor
+
+                # ----------------------- Lane keeping process -------------------
+
+                self.lane_keeping_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
+                self.lane_keeping_angle *= self.angle_factor
                     
-                if abs(self.curr_steering_angle) > 12:
+                if abs(self.lane_keeping_angle) > 12:
                     self.speed = 0.13
-                
-#                 print("Lane Keeping duration: ", time.time() - start)
-                
+
+                # ----------------------- Overtake Procedure -------------------
+
+                #TODO: Adjust this once path planning is added.
+
+                if self.vehicle_detected is True and self.overtake_flag is False: 
+
+                    # self.dotted_line = self.overtake.check_dotted_line(graph, source, target)
+                    # self.overtake.distance_to_vehicle(img, bbox)
+                    # self.speed, self.overtake_flag = self.overtake.react_to_vehicle(self.dotted_line)
+                    
+                    self.overtake_flag = True          # This is only for testing reasons 
+    
+                        if self.overtake_flag is True:
+                            self.overtake.startTime = rospy.get_time()
+
+                if self.overtake_flag is True:
+                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.overtake_flag, rospy.get_time())
+
+                    if(self.lane_keeping_flag is True):
+                        self.curr_steering_angle = self.lane_keeping_angle
+                         
+                    
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
                 stamp = time.time()

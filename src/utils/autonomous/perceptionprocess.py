@@ -82,6 +82,7 @@ class PerceptionProcess(WorkerProcess):
         self.curr_steering_angle = 0
         
         self.sign_detected = "None"
+        self.sign_distance = 0.0 #(cm)
 
         ### Parking params ###
         self.parking_ready = False
@@ -96,6 +97,7 @@ class PerceptionProcess(WorkerProcess):
         self.polygon_array = np.array([[0,460], [640,460], [546,260], [78, 260]])
         self.hor_detect_limit = 160
         self.horizontal_line = False
+
         
         global IMU
         signal.signal(signal.SIGTERM, self.exit_handler)
@@ -160,19 +162,19 @@ class PerceptionProcess(WorkerProcess):
                 line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
                 horizontal_line = hf.horizontal_line_detector(img, line_segments)
                 distance_hor, detected_hor_line, self.horizontal_img = hf.distance2intersection(horizontal_line, img)
-                print("Distance: ", distance_hor)
+                print("Distance_hor: ", distance_hor)
                 if distance_hor < self.hor_detect_limit:
                     self.horizontal_line = True
 
                 # ----------------------detect sign in image -----------------------
                 start = time.time()
-    #                 if self.countFrames%20 == 1:
-    #                     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    #                     self.outPs[2].send([[stamps], img_bgr])
-    #                 
-    #                 elif self.countFrames%20 == 0:
-    #                     stamps, self.img_sign, self.sign_detected = self.inPs[1].recv()
-                   #print("Sign detected: ", self.sign_detected)
+                if self.countFrames%20 == 1:
+                    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    self.outPs[2].send([[stamps], img_bgr])
+                
+                elif self.countFrames%20 == 0:
+                    stamps, self.sign_detected, self.sign_distance = self.inPs[1].recv()
+                print("Sign detected: ", self.sign_detected)
                 #print("Sign detection duration: ", time.time() - start)
                 
                 start = time.time()
@@ -191,13 +193,13 @@ class PerceptionProcess(WorkerProcess):
                 #### PARKING ####
                 if self.sign_detected == 'ParkingSpot' and self.parking_ready is False and self.parking_initiated is False:
                     
-                    # if x < 3 and y < 2.3:
+                    # if x == 0 and y == 0:
                     #     self.parking_type = "vertical"
                     # else:
                     #     self.parking_type = "horizontal"
                     self.parking_type = "vertical"
 
-                    self.max_count_steps = 10#11#distance*self.norm_factor
+                    self.max_count_steps = self.sign_distance*self.norm_factor #10
                     self.count_steps = 0
                     self.parking_ready = True
 

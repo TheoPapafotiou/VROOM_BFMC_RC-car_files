@@ -63,11 +63,11 @@ class SignDetectionProcess(WorkerProcess):
             try:
                 stamps, img = self.inPs[0].recv()
                 print("Frame received")
-                label, confidence = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
+                label, confidence, distance = self.signDet.detectSign(img, self.imgHeight, self.imgWidth)
                 print("I'm done")
                 try:
                     for outP in self.outPs:
-                        outP.send([[stamps], [label]])
+                        outP.send([[stamps], [label], [distance]])
                         print("Frame with sign sent")
                     
                 except Exception as e:

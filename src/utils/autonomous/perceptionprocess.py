@@ -35,6 +35,7 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import signal
 
 import cv2
 from threading import Thread
@@ -50,7 +51,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-
+from src.data.carstracker                      import gps_listener
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -78,6 +79,10 @@ class PerceptionProcess(WorkerProcess):
         self.found_intersection = False
         self.curr_steering_angle = 0
         self.angle_factor = 23.0/90
+
+        global GPS
+        signal.signal(signal.SIGTERM, self.exit_GPS_handler)
+        GPS = gps_listener()
         
     # ===================================== RUN ==========================================
     def run(self):
@@ -91,6 +96,12 @@ class PerceptionProcess(WorkerProcess):
         """
         readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
+
+    # ==================================== GPS HANDLER EXIT ==============================
+    def exit_GPS_handler(self, signum, frame):
+        GPS.stop()
+        GPS.join()
+        sys.exit(0)
     
     # ===================================== READ STREAM ==================================
     def _read_stream(self):
@@ -104,6 +115,7 @@ class PerceptionProcess(WorkerProcess):
         
         print('Start showing the photo')
 
+        GPS.start()
         while True:
             try:
                 start = time.time()
@@ -112,6 +124,8 @@ class PerceptionProcess(WorkerProcess):
 #                 print("&"*20)
 #                 print("Time for the transfer of the perception image: ", time.time() - stamps[0])
 #                 print("&"*20) 
+                pos = GPS.pos
+                print("Coordinates are: ", pos)
                  
                 if self.label is None:
                     self.img_sign = img

@@ -40,7 +40,7 @@ PORT = 50009
 ##  listener class. 
 #
 #  Class used for running port listener algorithm 
-class listener(Thread):
+class gps_listener(Thread):
     
     ## Constructor.
 	#  @param self          The object pointer.
@@ -57,12 +57,11 @@ class listener(Thread):
         self.sock.bind(('', self.PORT))
 
         # Debug msg
-        print("Created listener ")
+        print("Created listener!")
 
         # Values extracted from message
         self.ID = 0
         self.pos = complex(0,0)
-        self.ang = complex(0,0)
 
         Thread.__init__(self) 
 
@@ -87,7 +86,7 @@ class listener(Thread):
     def start(self):
         self.RUN_LISTENER = True
 
-        super(listener,self).start()
+        super(gps_listener,self).start()
 
     ## Method for stopping listener process.
     #  @param self          The object pointer.
@@ -96,16 +95,14 @@ class listener(Thread):
 
     ## Method for processing received data.
     #  @param self          The object pointer.
-    #  @param data          The string received on PORT ("ID, position(complex no.), orientation(complex no.)").
+    #  @param data          The string received on PORT ("ID, position(complex no.)").
     def processData(self,data):
         # Get ID
         self.ID = int(data['id'])
         # Get position
         self.pos = complex(data['coor'])
-        # Get orientation
-        self.ang = complex(data['rot'])
         # Debug message
-        to_print = "ID: {}, position: {}, orientation: {}.".format(self.ID,self.pos,self.ang)
+        to_print = "ID: {}, position: {}.".format(self.ID,self.pos)
         print(to_print)
 
 ## Method for running the listener thread (for testing purposes).
@@ -114,7 +111,7 @@ def runListener():
     # Get time stamp when starting tester
     start_time = time.time()
     # Create listener object
-    Listener = listener()
+    Listener = gps_listener()
     # Start the listener
     Listener.start()
     # Wait until 10 seconds passed

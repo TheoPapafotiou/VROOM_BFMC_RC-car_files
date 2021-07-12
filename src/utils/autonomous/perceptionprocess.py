@@ -51,7 +51,7 @@ from src.utils.autonomous.Mask                 import Mask
 from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
-from src.data.carstracker                      import gps_listener
+from src.data.carstracker.carstracker          import gps_listener
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -124,8 +124,9 @@ class PerceptionProcess(WorkerProcess):
 #                 print("&"*20)
 #                 print("Time for the transfer of the perception image: ", time.time() - stamps[0])
 #                 print("&"*20) 
-                pos = GPS.pos
-                print("Coordinates are: ", pos)
+                X = GPS.X
+                Y = GPS.Y
+                print("Coordinates are: ", X, ", ", Y)
                  
                 if self.label is None:
                     self.img_sign = img
@@ -145,7 +146,7 @@ class PerceptionProcess(WorkerProcess):
                 
 #                 if self.label is not None:
 #                     self.speed = 0.0
-                self.speed = 0.08
+                self.speed = 0.0
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
                 self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
                 self.curr_steering_angle *= self.angle_factor

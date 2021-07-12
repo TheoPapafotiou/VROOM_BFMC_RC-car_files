@@ -61,7 +61,8 @@ class gps_listener(Thread):
 
         # Values extracted from message
         self.ID = 0
-        self.pos = complex(0,0)
+        self.X = 0.0
+        self.Y = 0.0
 
         Thread.__init__(self) 
 
@@ -100,9 +101,10 @@ class gps_listener(Thread):
         # Get ID
         self.ID = int(data['id'])
         # Get position
-        self.pos = complex(data['coor'])
+        self.X = int(data['X'])
+        self.Y = int(data['Y'])
         # Debug message
-        to_print = "ID: {}, position: {}.".format(self.ID,self.pos)
+        to_print = "ID: {}, X: {}, Y: {}.".format(self.ID,self.X,self.Y)
         print(to_print)
 
 ## Method for running the listener thread (for testing purposes).

@@ -142,16 +142,19 @@ class PerceptionProcess(WorkerProcess):
                     
                     self.overtake_flag = True          # This is only for testing reasons 
     
-                        if self.overtake_flag is True:
-                            self.overtake.startTime = rospy.get_time()
+                    if self.overtake_flag is True:
+                        self.overtake.startTime = time.time()
 
                 if self.overtake_flag is True:
-                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.overtake_flag, rospy.get_time())
+                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.overtake_flag, time.time())
 
                     if(self.lane_keeping_flag is True):
                         self.curr_steering_angle = self.lane_keeping_angle
-                         
-                    
+                
+                else:
+                    self.curr_steering_angle = self.lane_keeping_angle
+                
+                print("Angle = ", self.curr_steering_angle, "\nSpeed =", self.speed)
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
                 stamp = time.time()

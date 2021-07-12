@@ -5,7 +5,7 @@ import imutils
 from imutils.object_detection import non_max_suppression
 from time import sleep 
 import math
-from bfmclib.LaneKeeping import LaneKeeping as lk
+from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 
 class OvertakeProcedure:
 
@@ -13,7 +13,7 @@ class OvertakeProcedure:
 
 		self.laneKeepingFlag = False
 		self.angle = 0
-		self.speed = 0.4
+		self.speed = 0.1
 		self.distance = 0
 		self.overtakeTime = 0
 		self.startTime = 0
@@ -45,12 +45,12 @@ class OvertakeProcedure:
 		dotted = graph[source][target]["dotted"]
 		return dotted
 
-	def react_to_vehicle(self, dotted):				
-
-        overtake_allowed = False				
+	def react_to_vehicle(self, dotted):
+            
+		overtake_allowed = False
 		if self.distance <= self.minDistance:
 			if dotted is True:
-                overtake_allowed = True
+				overtake_allowed = True
 				return self.speed, overtake_allowed	
 			else:
 				return self.speed, overtake_allowed
@@ -64,7 +64,8 @@ class OvertakeProcedure:
 
 			self.overtakeTime = cur_time - self.startTime
 			self.angle = self.calculate_steering_angle(self.overtakeTime)
-
+			print("Part 0 angle = ", self.angle, "\nOvertake Time =", self.overtakeTime)
+            
 		elif self.overtakeTime > self.safeDuration and self.overtakeTime < 2*self.safeDuration:
 			print("Part 1")
 
@@ -105,4 +106,4 @@ class OvertakeProcedure:
 		if(self.targetX - self.currentX == 0 ):
 			return self.angle
 
- 		return -100*(self.targetY - self.currentY) / (self.targetX - self.currentX) #return -140*((next_y - current_y) / (next_x - current_x)) # 130
+		return math.atan2((self.targetY - self.currentY), (self.targetX - self.currentX))

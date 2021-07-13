@@ -13,13 +13,13 @@ class PathPlanning:
     """
 
     #map_path = "/home/papafotit/Documents/BFMC_Simulator/startup_workspace/src/startup_package/src/map.graphml"
-    map_path = "src/startup_package/src/map.graphml"
+    map_path = "/home/pi/Desktop/VROOM_BFMC_RC-car_files/map_lab.graphml"
     #intersection_nodes = ['346', '270', '32', '36', '34', '6', '25', '27', '23', '370', '81', '2', '15', '16', '77', '72', '70', '79', '311', '314', '61', '467', '4', '59', '54', '52', '63', '68', '423', '303', '305', '45', '43', '41']
     #central_nodes = ['347', '271', '37', '39', '38', '11', '29', '30', '28', '371', '84', '9', '20', '20', '82', '75', '74', '83', '312', '315', '65', '468', '10', '64', '57', '56', '66', '73', '424', '304', '306', '48', '47', '46']
     
-
-    central_nodes_lab = ['55', '45', '58', '2', '27', '6']
-    intersection_nodes_lab = ['1', '40', '54', '57']
+    #LAB
+    central_nodes = ['55', '45', '58', '2', '27', '6']
+    intersection_nodes = ['1', '40', '54', '57']
     ra_enter = ["230", "342", "301"]
     ra_exit = ["231", "272", "343"]    
 

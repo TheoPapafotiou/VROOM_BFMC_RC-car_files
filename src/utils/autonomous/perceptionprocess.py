@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 import sys
 
-from networkx.generators.classic import complete_graph
+#from networkx.generators.classic import complete_graph
 sys.path.append('.')
 
 import time
@@ -88,7 +88,7 @@ class PerceptionProcess(WorkerProcess):
         #Intersection variables
         self.target_node = None
         self.reached_target = False
-        source, finish = '24', '4'
+        source, finish = '38', '48'
 
         self.complete_path = pp.shortest_path(source, finish)
         self.path = pp.remove_central_nodes(self.complete_path)
@@ -158,10 +158,10 @@ class PerceptionProcess(WorkerProcess):
 #                 print("&"*20) 
                 X = GPS.X
                 Y = GPS.Y
-                print("Coordinates are: ", X, ", ", Y)
+                #print("Coordinates are: ", X, ", ", Y)
 
                 yaw = IMU.yaw
-                print("Yaw is: ", yaw)
+                #print("Yaw is: ", yaw)
                  
                 if self.label is None:
                     self.img_sign = img
@@ -217,7 +217,8 @@ class PerceptionProcess(WorkerProcess):
                     self.start_yaw = yaw
                     self.start_time = time.time()
 
-
+                print("Found Intersection: ", self.found_intersection)
+                print("Path ", self.path)
                 if(self.intersection_navigation == False):
                     self.curr_steering_angle = self.lane_keeping_angle
 
@@ -245,7 +246,7 @@ class PerceptionProcess(WorkerProcess):
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]
                 stamp = time.time()
-                self.outPs[0].send([[stamp], lane_frame])
+                self.outPs[0].send([[stamp], img_lane])
                 self.outPs[1].send([perception_results, stamp])
                 
                 #print("\nTotal duration of perception: ", time.time() - start, "\n")

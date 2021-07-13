@@ -26,6 +26,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
 import sys
+
+from networkx.generators.classic import complete_graph
 sys.path.append('.')
 
 import time
@@ -52,6 +54,8 @@ from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 from src.data.carstracker.carstracker          import gps_listener
+from src.hardware.BNOHandler.BNOhandler        import BNOhandler
+from src.utils.autonomous.PathPlanning         import PathPlanning as pp
 
 class PerceptionProcess(WorkerProcess):
     # ===================================== INIT =========================================
@@ -80,9 +84,30 @@ class PerceptionProcess(WorkerProcess):
         self.curr_steering_angle = 0
         self.angle_factor = 23.0/90
 
+
+        #Intersection variables
+        self.target_node = None
+        self.reached_target = False
+        source, finish = '24', '4'
+
+        self.complete_path = pp.shortest_path(source, finish)
+        self.path = pp.remove_central_nodes(self.complete_path)
+
+        self.start_yaw = 0
+        self.start_time = 0
+
+
+        self.polygon_array = np.array([[0,460], [640,460], [546,260], [78, 260]])
+        self.hor_detect_limit = 160
+        self.horizontal_line = False
+
         global GPS
         signal.signal(signal.SIGTERM, self.exit_GPS_handler)
         GPS = gps_listener()
+
+        global IMU
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        IMU = BNOhandler()
         
     # ===================================== RUN ==========================================
     def run(self):
@@ -102,6 +127,12 @@ class PerceptionProcess(WorkerProcess):
         GPS.stop()
         GPS.join()
         sys.exit(0)
+
+    # ==================================== BNO HANDLER EXIT ==============================
+    def exit_handler(self, signum, frame):
+        IMU.stop()
+        IMU.join()
+        sys.exit(0)
     
     # ===================================== READ STREAM ==================================
     def _read_stream(self):
@@ -116,6 +147,7 @@ class PerceptionProcess(WorkerProcess):
         print('Start showing the photo')
 
         GPS.start()
+        IMU.start()
         while True:
             try:
                 start = time.time()
@@ -127,9 +159,28 @@ class PerceptionProcess(WorkerProcess):
                 X = GPS.X
                 Y = GPS.Y
                 print("Coordinates are: ", X, ", ", Y)
+
+                yaw = IMU.yaw
+                print("Yaw is: ", yaw)
                  
                 if self.label is None:
                     self.img_sign = img
+
+                # ---------------------process frame ------------------------------
+                img_dims = img[:,:,0].shape
+                mask = Mask(4, img_dims)
+                mask.set_polygon_points(self.polygon_array)
+                processed_img = hf.image_processing(img)
+                masked_img = mask.apply_to_img(processed_img)
+
+                # ----------------------detect horizontal line ---------------------
+                self.horizontal_line = False
+                line_segments = hf.vector_to_lines(hf.detect_line_segments(masked_img))
+                horizontal_line = hf.horizontal_line_detector(img, line_segments)
+                distance_hor, detected_hor_line, self.horizontal_img = hf.distance2intersection(horizontal_line, img)
+                print("Distance_hor: ", distance_hor)
+                if distance_hor < self.hor_detect_limit:
+                    self.horizontal_line = True
                 
                 # ----------------------detect sign in image -----------------------
 #                 start = time.time()
@@ -146,11 +197,46 @@ class PerceptionProcess(WorkerProcess):
                 
 #                 if self.label is not None:
 #                     self.speed = 0.0
-                self.speed = 0.0
+                self.speed = 0.08
+
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
-                self.curr_steering_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
-                self.curr_steering_angle *= self.angle_factor
+                self.lane_keeping_angle, lane_frame = self.lane_keeping.lane_keeping_pipeline(img_lane)
+             
+
+
+                # ---------------------- intersection navigation -----------------------
+                
+                #Check if at intersection
+                if(self.horizontal_line and self.intersection_navigation == False):
+
+
+                    #NA MPEI ELEGXOS AN EXOYME INTERSECTION NODE
+                    self.found_intersection = True
+                    self.target_node, self.reached_target = pp.find_target(self.path)
+
+                    self.start_yaw = yaw
+                    self.start_time = time.time()
+
+
+                if(self.intersection_navigation == False):
+                    self.curr_steering_angle = self.lane_keeping_angle
+
+
+                if(self.found_intersection or self.intersection_navigation):
+                    if(self.intersection_navigation == False):
+                        self.intersection_navigation = True
+                        self.curr_steering_angle, self.reached_target = pp.intersection_navigation(self.path, X, Y, self.target_node, self.start_yaw, yaw, self.complete_path,  self.speed, self.start_time)
                     
+                        self.found_intersection = False
+                    else:
+                        self.curr_steering_angle, self.reached_target = pp.intersection_navigation(self.path, X, Y, self.target_node, self.start_yaw, yaw, self.complete_path,  self.speed, self.start_time)
+                    
+                    if(self.reached_target):
+                            self.intersection_navigation = False
+                    
+
+                # ---------------------- factor angle -----------------------
+                self.curr_steering_angle *= self.angle_factor
                 if abs(self.curr_steering_angle) > 12:
                     self.speed = 0.13
                 

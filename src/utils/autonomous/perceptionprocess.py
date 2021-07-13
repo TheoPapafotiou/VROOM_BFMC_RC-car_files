@@ -156,7 +156,7 @@ class PerceptionProcess(WorkerProcess):
                 
                 else:
                     self.curr_steering_angle = self.lane_keeping_angle
-                self.speed = 0.0
+                #self.speed = 0.0
                 
                 if self.curr_steering_angle > 23.0:
                     self.curr_steering_angle = 23.0

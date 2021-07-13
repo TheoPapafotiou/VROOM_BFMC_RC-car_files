@@ -19,9 +19,9 @@ class OvertakeProcedure:
 		self.startTime = 0
 		self.minSpeed = 0.12
 		self.minDistance = 330
-		self.laneWidth = 3.5
-		self.safeDistance = 78.67
-		self.safeDuration = 2.26
+		self.laneWidth = 5
+		self.safeDistance = 60 #78.67
+		self.safeDuration = 1.66
 		self.currentX = 0
 		self.currentY = 0
 		self.targetX = 0
@@ -63,7 +63,7 @@ class OvertakeProcedure:
 			print("Part 0")
 
 			self.overtakeTime = cur_time - self.startTime
-			self.angle = -1 * self.calculate_steering_angle(self.overtakeTime)
+			self.angle = -2 * self.calculate_steering_angle(self.overtakeTime)
 			print("Part 0 angle = ", self.angle, "\nOvertake Time =", self.overtakeTime)
             
 		elif self.overtakeTime >= 2*self.safeDuration and self.overtakeTime < 3*self.safeDuration:

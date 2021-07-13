@@ -13,11 +13,11 @@ class OvertakeProcedure:
 
 		self.laneKeepingFlag = False
 		self.angle = 0
-		self.speed = 0.1
+		self.speed = 0.08
 		self.distance = 0
 		self.overtakeTime = 0
 		self.startTime = 0
-		self.minSpeed = 0.08
+		self.minSpeed = 0.12
 		self.minDistance = 330
 		self.laneWidth = 3.5
 		self.safeDistance = 78.67
@@ -59,31 +59,37 @@ class OvertakeProcedure:
 			return self.speed, overtake_allowed
 
 	def make_detour(self, overtake_flag, cur_time):
-		if (self.overtakeTime < self.safeDuration):
+		if (self.overtakeTime < 2*self.safeDuration):
 			print("Part 0")
 
 			self.overtakeTime = cur_time - self.startTime
-			self.angle = self.calculate_steering_angle(self.overtakeTime)
+			self.angle = -1 * self.calculate_steering_angle(self.overtakeTime)
 			print("Part 0 angle = ", self.angle, "\nOvertake Time =", self.overtakeTime)
             
-		elif self.overtakeTime > self.safeDuration and self.overtakeTime < 2*self.safeDuration:
+		elif self.overtakeTime >= 2*self.safeDuration and self.overtakeTime < 3*self.safeDuration:
 			print("Part 1")
 
 			self.overtakeTime = cur_time - self.startTime
 			self.laneKeepingFlag = True
 			print("Overtake timee = ", self.overtakeTime)
 		
-		elif self.overtakeTime >= 2*self.safeDuration and self.overtakeTime < 3*self.safeDuration : #2.2 for straight & 2 for turns
+		elif self.overtakeTime >= 3*self.safeDuration and self.overtakeTime < 4*self.safeDuration : #2.2 for straight & 2 for turns
 			print("Part 2")
 
 			self.overtakeTime = cur_time - self.startTime
-			self.angle = -1 * self.calculate_steering_angle(self.overtakeTime - 2*self.safeDuration)
+			self.angle = self.calculate_steering_angle(self.overtakeTime - 3*self.safeDuration)
 			self.laneKeepingFlag = False
+			print("Overtake timee = ", self.overtakeTime)
+
 
 		else:
 			print("Part 3")
 			self.startTime = 0
-			self.laneKeepingFlag = True
+			#self.laneKeepingFlag = True
+			self.speed = 0
+			overtake_flag = False
+			print("Overtake timee = ", self.overtakeTime)
+
 			#self.overtakeFlag = False
 
 		return self.speed, self.angle, overtake_flag, self.laneKeepingFlag

@@ -84,7 +84,7 @@ class PerceptionProcess(WorkerProcess):
         self.overtake_flag = False 
         self.dotted_line = True
         self.lane_keeping_flag = False
-        self.lane_keeping_angle = 0
+        self.lane_keeping_angle = 0.00
 
         
     # ===================================== RUN ==========================================
@@ -141,10 +141,13 @@ class PerceptionProcess(WorkerProcess):
                     # self.speed, self.overtake_flag = self.overtake.react_to_vehicle(self.dotted_line)
                     
                     self.overtake_flag = True          # This is only for testing reasons 
-    
+            
                     if self.overtake_flag is True:
                         self.overtake.startTime = time.time()
-
+                        print("Overtake start time = ", self.overtake.startTime)
+                        
+                print("Overtake flag = ", self.overtake_flag, "Vehicle detected fag = ", self.vehicle_detected)
+                
                 if self.overtake_flag is True:
                     self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.overtake_flag, time.time())
 
@@ -153,7 +156,15 @@ class PerceptionProcess(WorkerProcess):
                 
                 else:
                     self.curr_steering_angle = self.lane_keeping_angle
+                self.speed = 0.0
                 
+                if self.curr_steering_angle > 23.0:
+                    self.curr_steering_angle = 23.0
+                
+                elif self.curr_steering_angle < -23.0:
+                    self.curr_steering_angle = -23.0
+                
+                print("Lane keeping  angle = ", self.lane_keeping_angle)
                 print("Angle = ", self.curr_steering_angle, "\nSpeed =", self.speed)
                 # ----------------------- send results (image, perception) -------------------
                 perception_results = [self.curr_steering_angle, self.speed]

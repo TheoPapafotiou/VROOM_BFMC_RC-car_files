@@ -15,18 +15,13 @@ class OvertakeProcedure:
 		self.angle = 0
 		self.speed = 0.08
 		self.distance = 0
-		self.overtakeTime = 0
-		self.startTime = 0
+		self.part = [False, False, False, False, False]
+		self.overtake_done = False
 		self.minSpeed = 0.12
-		self.minDistance = 330
-		self.laneWidth = 5
-		self.safeDistance = 60 #78.67
-		self.safeDuration = 1.66
-		self.currentX = 0
-		self.currentY = 0
-		self.targetX = 0
-		self.targetY = 0
-
+		self.threshold = 30
+		self.step_sub = 1
+		self.theta = -30
+		
 	def distance_to_vehicle(self, frame, bbox):
 		img_dims = frame[:,:,0].shape
 
@@ -58,58 +53,74 @@ class OvertakeProcedure:
 			self.speed = self.minSpeed
 			return self.speed, overtake_allowed
 
-	def make_detour(self, overtake_flag, cur_time):
-		if (self.overtakeTime < 2*self.safeDuration):
-			print("Part 0")
-
-			self.overtakeTime = cur_time - self.startTime
-			self.angle = -2 * self.calculate_steering_angle(self.overtakeTime)
-			print("Part 0 angle = ", self.angle, "\nOvertake Time =", self.overtakeTime)
-            
-		elif self.overtakeTime >= 2*self.safeDuration and self.overtakeTime < 3*self.safeDuration:
-			print("Part 1")
-
-			self.overtakeTime = cur_time - self.startTime
-			self.laneKeepingFlag = True
-			print("Overtake timee = ", self.overtakeTime)
+	def make_detour(self, yaw_init, yaw, overtake_flag):
 		
-		elif self.overtakeTime >= 3*self.safeDuration and self.overtakeTime < 4*self.safeDuration : #2.2 for straight & 2 for turns
+		if self.counter == 70:
+			self.overtake_done = True
+
+		if yaw == yaw_init and self.part[0] is False: #Turn left and forward
+			for i in range(0, 4):
+				self.part[i] = False
+			self.part[0] = True
+
+		elif yaw >= (yaw_init + self.threshold) and self.part[0] is True: #Turn right and forward
+			for i in range(0, 4):
+				self.part[i] = False
+			self.part[1] = True
+
+		elif yaw <= (yaw_init + 1) and yaw >= (yaw_init - 1) and self.part[1] is True: #Overtake (straight forward)
+			for i in range(0, 4):
+				self.part[i] = False
+			self.part[2] = True
+
+		elif yaw <= (yaw_init + 2) and yaw >= (yaw_init - 2) and self.part[2] is True and self.overtake_done is True: #Turn right and forward
+			for i in range(0, 4):
+				self.part[i] = False
+			self.part[3] = True
+			self.overtake_done = False
+			self.counter = 0
+
+		elif yaw <= (yaw_init - self.threshold) and self.part[3] is True: #Turn left until 
+			for i in range(0, 4):
+				self.part[i] = False
+			self.part[4] = True
+
+		elif yaw <= (yaw_init + 1) and yaw >= (yaw_init - 1) and self.part[4] is True: #Turn right and backwards
+			for i in range(0, 4):
+				self.part[i] = False
+			#self.part[0] = True
+			overtake_flag = False   
+
+		### Calculate the speed and angle
+		if self.part[0] is True:
+			print("Part 0")
+			self.angle += self.step_sub
+			self.speed = self.min_speed
+
+		elif self.part[1] is True:
+			print("Part 1")
+			self.angle -= self.step_sub
+			self.speed = self.min_speed
+# 			self.laneKeepingFlag = True
+
+		elif self.part[2] is True:
 			print("Part 2")
+# 			self.angle = 0
+# 			self.speed = 2*self.min_speed
+            self.laneKeepingFlag = True
+			self.counter += 1
 
-			self.overtakeTime = cur_time - self.startTime
-			self.angle = self.calculate_steering_angle(self.overtakeTime - 3*self.safeDuration)
-			self.laneKeepingFlag = False
-			print("Overtake timee = ", self.overtakeTime)
-
-
-		else:
+		elif self.part[3] is True:
 			print("Part 3")
-			self.startTime = 0
-			#self.laneKeepingFlag = True
-			self.speed = 0
-			overtake_flag = False
-			print("Overtake timee = ", self.overtakeTime)
+			self.angle -= self.step_sub
+			self.speed = self.min_speed
+			self.laneKeepingFlag = False
 
-			#self.overtakeFlag = False
+		elif self.part[4] is True:
+			print("Part 4")
+			self.angle += self.step_sub
+			self.speed = self.min_speed
+		
+		
 
 		return self.speed, self.angle, overtake_flag, self.laneKeepingFlag
-
-	def calculate_x(self, cur_time):
-		x = 70*self.minSpeed * cur_time + ((70*self.minSpeed * self.safeDuration - self.safeDistance))*(10*((cur_time/self.safeDuration)**3) - 15*((cur_time/self.safeDuration)**4) + 6*((cur_time/self.safeDuration)**5))
-		return x
-
-	def calculate_y(self, cur_time):
-		y = self.laneWidth + self.laneWidth*(10*((cur_time/self.safeDuration)**3) - 15*((cur_time/self.safeDuration)**4) + 6*((cur_time/self.safeDuration)**5))
-		return y
-
-	def calculate_steering_angle(self, cur_time):
-		self.currentX = self.targetX
-		self.currentY = self.targetY
-
-		self.targetX = self.calculate_x(cur_time)
-		self.targetY = self.calculate_y(cur_time)
-		
-		if(self.targetX - self.currentX == 0 ):
-			return self.angle
-
-		return math.atan2((self.targetY - self.currentY), (self.targetX - self.currentX))

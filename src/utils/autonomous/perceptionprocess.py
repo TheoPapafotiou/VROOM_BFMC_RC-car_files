@@ -119,7 +119,7 @@ class PerceptionProcess(WorkerProcess):
                             
                 start = time.time()
                 
-                self.speed = 0.08
+                self.speed = 0.1
                 img_lane = cv2.resize(img, (320,240), interpolation=cv2.INTER_AREA)
 
                 # ----------------------- Lane keeping process -------------------

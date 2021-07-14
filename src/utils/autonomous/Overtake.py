@@ -9,7 +9,7 @@ from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 
 class OvertakeProcedure:
 
-	def __init__(self):	
+	def __init__(self):
 
 		self.laneKeepingFlag = False
 		self.angle = 0
@@ -17,10 +17,9 @@ class OvertakeProcedure:
 		self.distance = 0
 		self.part = [False, False, False, False, False]
 		self.overtake_done = False
-		self.minSpeed = 0.12
+		self.minSpeed = 0.08
 		self.threshold = 30
-		self.step_sub = 1
-		self.theta = -30
+		self.step_sub = 0.25
 		self.counter = 0
 		
 	def distance_to_vehicle(self, frame, bbox):
@@ -47,7 +46,7 @@ class OvertakeProcedure:
 		if self.distance <= self.minDistance:
 			if dotted is True:
 				overtake_allowed = True
-				return self.speed, overtake_allowed	
+				return self.speed, overtake_allowed
 			else:
 				return self.speed, overtake_allowed
 		else:
@@ -56,6 +55,7 @@ class OvertakeProcedure:
 
 	def make_detour(self, yaw_init, yaw, overtake_flag):
 		
+		print(20*"--")
 		if self.counter == 70:
 			self.overtake_done = True
 
@@ -94,34 +94,31 @@ class OvertakeProcedure:
 
 		### Calculate the speed and angle
 		if self.part[0] is True:
-			print("Part 0")
+			print("===================Part 0==================")
 			self.angle -= self.step_sub
-			self.speed = self.min_speed
+			self.speed = self.minSpeed
 
 		elif self.part[1] is True:
 			print("Part 1")
 			self.angle += self.step_sub
-			self.speed = self.min_speed
+			self.speed = self.minSpeed
 # 			self.laneKeepingFlag = True
 
 		elif self.part[2] is True:
 			print("Part 2")
 # 			self.angle = 0
-# 			self.speed = 2*self.min_speed
-            self.laneKeepingFlag = True
+			self.laneKeepingFlag = True
 			self.counter += 1
 
 		elif self.part[3] is True:
 			print("Part 3")
 			self.angle += self.step_sub
-			self.speed = self.min_speed
+			self.speed = self.minSpeed
 			self.laneKeepingFlag = False
 
 		elif self.part[4] is True:
 			print("Part 4")
 			self.angle += self.step_sub
-			self.speed = self.min_speed
-		
-		
+			self.speed = self.minSpeed
 
-		return self.speed, self.angle, overtake_flag, self.laneKeepingFlag
+		return self.minSpeed, self.angle, overtake_flag, self.laneKeepingFlag

@@ -74,7 +74,7 @@ class BNOhandler(threading.Thread):
                 self.velz = math.degrees(self.gyro[2])
                 
                 #print("roll = %f pitch = %f yaw = %f" % (self.roll,self.pitch,self.yaw))
-                print("gyro-x = %f gyro-y = %f gyro-z = %f" % (self.velx,self.vely,self.velz))
+                #print("gyro-x = %f gyro-y = %f gyro-z = %f" % (self.velx,self.vely,self.velz))
                
                 time.sleep(self.poll_interval*1.0/1000.0)
 

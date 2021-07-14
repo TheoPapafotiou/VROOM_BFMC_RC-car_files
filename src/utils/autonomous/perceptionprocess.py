@@ -35,6 +35,7 @@ import numpy as np
 from PIL import Image
 import io
 import base64
+import signal
 
 import cv2
 from threading import Thread
@@ -89,7 +90,9 @@ class PerceptionProcess(WorkerProcess):
         self.start_yaw = 0
         self.yaw = 0
 
-        
+        global IMU
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        IMU = BNOhandler()
     # ===================================== RUN ==========================================
     def run(self):
         """Apply the initializers and start the threads.
@@ -121,8 +124,6 @@ class PerceptionProcess(WorkerProcess):
         
         print('Start showing the photo')
 
-        global IMU
-        IMU = BNOhandler()
         IMU.start()
 
         while True:
@@ -148,6 +149,7 @@ class PerceptionProcess(WorkerProcess):
                 #TODO: Adjust this once path planning is added.
 
                 yaw = IMU.yaw
+                print("YAW -> ",yaw)
 
                 if self.vehicle_detected is True and self.overtake_flag is False: 
 
@@ -159,26 +161,25 @@ class PerceptionProcess(WorkerProcess):
             
                     if self.overtake_flag is True:
                         self.start_yaw = IMU.yaw
-                        print("Overtake start time = ", self.overtake.startTime)
+                        print("Overtake start yaw = ", self.start_yaw)
                         
-                print("Overtake flag = ", self.overtake_flag, "Vehicle detected flag = ", self.vehicle_detected)
+                print("Overtake flag = ", self.overtake_flag, "\nVehicle detected flag = ", self.vehicle_detected)
                 
                 if self.overtake_flag is True:
-                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.start_yaw, self.yaw, self.overtake_flag)
+                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.start_yaw, yaw, self.overtake_flag)
 
                     if(self.lane_keeping_flag is True):
                         self.curr_steering_angle = self.lane_keeping_angle
                 
                 else:
                     self.curr_steering_angle = self.lane_keeping_angle
-                #self.speed = 0.0
                 
                 if self.curr_steering_angle > 23.0:
                     self.curr_steering_angle = 23.0
                 
                 elif self.curr_steering_angle < -23.0:
                     self.curr_steering_angle = -23.0
-                
+                #self.speed = 0.00
                 print("Lane keeping  angle = ", self.lane_keeping_angle)
                 print("Angle = ", self.curr_steering_angle, "\nSpeed =", self.speed)
                 # ----------------------- send results (image, perception) -------------------

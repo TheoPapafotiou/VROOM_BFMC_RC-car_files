@@ -21,6 +21,7 @@ class OvertakeProcedure:
 		self.threshold = 30
 		self.step_sub = 1
 		self.theta = -30
+		self.counter = 0
 		
 	def distance_to_vehicle(self, frame, bbox):
 		img_dims = frame[:,:,0].shape
@@ -58,34 +59,34 @@ class OvertakeProcedure:
 		if self.counter == 70:
 			self.overtake_done = True
 
-		if yaw == yaw_init and self.part[0] is False: #Turn left and forward
+		if yaw == yaw_init and self.part[0] is False: # Turn left
 			for i in range(0, 4):
 				self.part[i] = False
 			self.part[0] = True
 
-		elif yaw >= (yaw_init + self.threshold) and self.part[0] is True: #Turn right and forward
+		elif abs(yaw - yaw_init) >= self.threshold and self.part[0] is True: # Turn right to correct
 			for i in range(0, 4):
 				self.part[i] = False
 			self.part[1] = True
 
-		elif yaw <= (yaw_init + 1) and yaw >= (yaw_init - 1) and self.part[1] is True: #Overtake (straight forward)
+		elif abs(yaw - yaw_init) in range (0,4) and self.part[1] is True: # Go straight (Lane keeping)
 			for i in range(0, 4):
 				self.part[i] = False
 			self.part[2] = True
 
-		elif yaw <= (yaw_init + 2) and yaw >= (yaw_init - 2) and self.part[2] is True and self.overtake_done is True: #Turn right and forward
+		elif abs(yaw - yaw_init) in range(0, 2) and self.part[2] is True and self.overtake_done is True: # Turn right 
 			for i in range(0, 4):
 				self.part[i] = False
 			self.part[3] = True
 			self.overtake_done = False
 			self.counter = 0
 
-		elif yaw <= (yaw_init - self.threshold) and self.part[3] is True: #Turn left until 
+		elif abs(yaw - yaw_init) >=  self.threshold and self.part[3] is True: #Turn left 
 			for i in range(0, 4):
 				self.part[i] = False
 			self.part[4] = True
 
-		elif yaw <= (yaw_init + 1) and yaw >= (yaw_init - 1) and self.part[4] is True: #Turn right and backwards
+		elif abs(yaw - yaw_init) in range (0,1) and self.part[4] is True: # Overtake is done. Lane keeping
 			for i in range(0, 4):
 				self.part[i] = False
 			#self.part[0] = True
@@ -94,12 +95,12 @@ class OvertakeProcedure:
 		### Calculate the speed and angle
 		if self.part[0] is True:
 			print("Part 0")
-			self.angle += self.step_sub
+			self.angle -= self.step_sub
 			self.speed = self.min_speed
 
 		elif self.part[1] is True:
 			print("Part 1")
-			self.angle -= self.step_sub
+			self.angle += self.step_sub
 			self.speed = self.min_speed
 # 			self.laneKeepingFlag = True
 
@@ -112,7 +113,7 @@ class OvertakeProcedure:
 
 		elif self.part[3] is True:
 			print("Part 3")
-			self.angle -= self.step_sub
+			self.angle += self.step_sub
 			self.speed = self.min_speed
 			self.laneKeepingFlag = False
 

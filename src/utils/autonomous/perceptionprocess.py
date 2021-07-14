@@ -51,6 +51,7 @@ from src.utils.autonomous.HelperFunctions      import HelperFunctions as hf
 from src.utils.autonomous.LaneKeeping          import LaneKeeping as lk
 from src.utils.autonomous.LaneKeepingReloaded  import LaneKeepingReloaded
 from src.utils.autonomous.Overtake             import OvertakeProcedure
+from src.hardware.BNOHandler.BNOhandler        import BNOhandler
 
 
 class PerceptionProcess(WorkerProcess):
@@ -85,6 +86,8 @@ class PerceptionProcess(WorkerProcess):
         self.dotted_line = True
         self.lane_keeping_flag = False
         self.lane_keeping_angle = 0.00
+        self.start_yaw = 0
+        self.yaw = 0
 
         
     # ===================================== RUN ==========================================
@@ -99,7 +102,13 @@ class PerceptionProcess(WorkerProcess):
         """
         readTh = Thread(name = 'PhotoReceiving',target = self._read_stream)
         self.threads.append(readTh)
-    
+
+        # ==================================== BNO HANDLER EXIT ==============================
+    def exit_handler(signum, frame):
+        IMU.stop()
+        IMU.join()
+        sys.exit(0)
+
     # ===================================== READ STREAM ==================================
     def _read_stream(self):
         """Read the image from input stream, decode it and show it.
@@ -111,6 +120,10 @@ class PerceptionProcess(WorkerProcess):
         """
         
         print('Start showing the photo')
+
+        global IMU
+        IMU = BNOhandler()
+        IMU.start()
 
         while True:
             try:
@@ -134,6 +147,8 @@ class PerceptionProcess(WorkerProcess):
 
                 #TODO: Adjust this once path planning is added.
 
+                yaw = IMU.yaw
+
                 if self.vehicle_detected is True and self.overtake_flag is False: 
 
                     # self.dotted_line = self.overtake.check_dotted_line(graph, source, target)
@@ -143,13 +158,13 @@ class PerceptionProcess(WorkerProcess):
                     self.overtake_flag = True          # This is only for testing reasons 
             
                     if self.overtake_flag is True:
-                        self.overtake.startTime = time.time()
+                        self.start_yaw = IMU.yaw
                         print("Overtake start time = ", self.overtake.startTime)
                         
-                print("Overtake flag = ", self.overtake_flag, "Vehicle detected fag = ", self.vehicle_detected)
+                print("Overtake flag = ", self.overtake_flag, "Vehicle detected flag = ", self.vehicle_detected)
                 
                 if self.overtake_flag is True:
-                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.overtake_flag, time.time())
+                    self.speed, self.curr_steering_angle, self.overtake_flag, self.lane_keeping_flag = self.overtake.make_detour(self.start_yaw, self.yaw, self.overtake_flag)
 
                     if(self.lane_keeping_flag is True):
                         self.curr_steering_angle = self.lane_keeping_angle

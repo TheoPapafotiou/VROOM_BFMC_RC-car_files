@@ -161,8 +161,11 @@ class PerceptionProcess(WorkerProcess):
                 #print("Coordinates are: ", X, ", ", Y)
 
                 yaw = IMU.yaw
+                yaw = 180 - yaw # so that the actual car fits with the simulation coordinate system
+                if yaw > 180:
+                    yaw = yaw - 360 # [0 || 180] - [0 || -180]
                 #print("Yaw is: ", yaw)
-                 
+                
                 if self.label is None:
                     self.img_sign = img
 
